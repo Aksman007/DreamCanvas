@@ -1,0 +1,11 @@
+{
+  "folders": [
+    { "name": "Mobile App", "path": "mobile" },
+    { "name": "Backend API", "path": "backend" }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+    "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" }
+  }
+}
