@@ -1,74 +1,79 @@
-# app/main.py
+"""
+DreamCanvas API - Main Application Entry Point
+
+This module creates and configures the FastAPI application.
+"""
 
 import logging
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
 
 from app.config import settings
-from app.db.session import init_db, close_db
-from app.db.init_db import init_db as init_data
-from app.core.middleware import RequestLoggingMiddleware, RateLimitMiddleware
-from app.core.exceptions import DreamCanvasException
-from app.api.v1.router import api_router
 
-# Configure logging
+# ==================== Logging Configuration ====================
+
 logging.basicConfig(
-    level=logging.DEBUG if settings.debug else logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=getattr(logging, settings.log_level),
+    format=settings.log_format,
 )
 logger = logging.getLogger(__name__)
 
 
-# ============== Lifespan Events ==============
+# ==================== Lifespan Events ====================
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
-    Application lifespan handler.
-    Manages startup and shutdown events.
+    Application lifespan manager.
+
+    Handles startup and shutdown events.
+    - Startup: Initialize connections (DB, Redis, etc.)
+    - Shutdown: Close connections gracefully
     """
-    # Startup
+    # ===== Startup =====
+    logger.info("=" * 50)
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Debug mode: {settings.debug}")
+    logger.info("=" * 50)
 
-    # Initialize database
-    await init_db()
+    # TODO: Initialize database connection (Phase 3)
+    # TODO: Initialize Redis connection (Phase 6)
 
-    # Initialize data (superuser, etc.)
-    if settings.environment == "development":
-        await init_data()
+    logger.info("✅ Application startup complete")
 
-    logger.info("Application startup complete")
+    yield  # Application runs here
 
-    yield
-
-    # Shutdown
+    # ===== Shutdown =====
     logger.info("Shutting down application...")
-    await close_db()
-    logger.info("Application shutdown complete")
+
+    # TODO: Close database connection (Phase 3)
+    # TODO: Close Redis connection (Phase 6)
+
+    logger.info("✅ Application shutdown complete")
 
 
-# ============== Create Application ==============
+# ==================== Create FastAPI Application ====================
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="AI-Powered Visual Storytelling API",
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
-    openapi_url="/openapi.json" if settings.debug else None,
+    description=settings.app_description,
+    docs_url="/docs" if settings.docs_enabled else None,
+    redoc_url="/redoc" if settings.docs_enabled else None,
+    openapi_url="/openapi.json" if settings.docs_enabled else None,
     lifespan=lifespan,
 )
 
 
-# ============== Middleware ==============
+# ==================== Middleware ====================
 
-# CORS
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -77,94 +82,142 @@ app.add_middleware(
     allow_headers=settings.cors_allow_headers,
 )
 
-# Request logging
-app.add_middleware(RequestLoggingMiddleware)
 
-# Rate limiting (use Redis-based in production)
-if settings.environment != "testing":
-    app.add_middleware(
-        RateLimitMiddleware, requests_per_minute=settings.rate_limit_per_minute
-    )
-
-
-# ============== Exception Handlers ==============
-
-
-@app.exception_handler(DreamCanvasException)
-async def dreamcanvas_exception_handler(
-    request: Request, exc: DreamCanvasException
-) -> JSONResponse:
-    """Handle custom DreamCanvas exceptions."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "detail": exc.message,
-            "error_type": exc.__class__.__name__,
-            **exc.details,
-        },
-    )
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
-    """Handle Pydantic validation errors."""
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": "Validation error", "errors": exc.errors()},
-    )
+# ==================== Exception Handlers ====================
 
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Handle unexpected exceptions."""
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """
+    Global exception handler for unhandled exceptions.
+
+    In development: Shows detailed error information
+    In production: Shows generic error message
+    """
     logger.exception(f"Unhandled exception: {exc}")
 
-    # Don't expose internal errors in production
-    if settings.environment == "production":
+    if settings.is_development:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "Internal server error"},
+            content={
+                "detail": str(exc),
+                "type": exc.__class__.__name__,
+            },
         )
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": str(exc), "error_type": exc.__class__.__name__},
+        content={"detail": "Internal server error"},
     )
 
 
-# ============== Routes ==============
-
-# Include API router
-app.include_router(api_router, prefix=settings.api_v1_prefix)
+# ==================== Routes ====================
 
 
-# Health check endpoint
-@app.get("/health", tags=["Health"])
+@app.get(
+    "/",
+    tags=["Root"],
+    summary="Root endpoint",
+    description="Returns basic API information",
+)
+async def root():
+    """
+    Root endpoint with API information.
+
+    Returns:
+        dict: API name, version, and documentation URL
+    """
+    return {
+        "name": settings.app_name,
+        "version": settings.app_version,
+        "environment": settings.environment,
+        "docs": "/docs" if settings.docs_enabled else "Disabled",
+        "health": "/health",
+    }
+
+
+@app.get(
+    "/health",
+    tags=["Health"],
+    summary="Health check",
+    description="Returns the health status of the API and its dependencies",
+)
 async def health_check():
     """
     Health check endpoint for load balancers and monitoring.
+
+    Checks:
+        - API status
+        - Database connection (TODO: Phase 3)
+        - Redis connection (TODO: Phase 6)
+
+    Returns:
+        dict: Health status of all components
     """
-    from app.db.session import check_db_connection
-
-    db_healthy = await check_db_connection()
-
-    return {
-        "status": "healthy" if db_healthy else "degraded",
+    # TODO: Add actual health checks in later phases
+    health_status = {
+        "status": "healthy",
         "service": settings.app_name,
         "version": settings.app_version,
         "environment": settings.environment,
-        "database": "connected" if db_healthy else "disconnected",
+        "checks": {
+            "api": "healthy",
+            "database": "not_configured",  # TODO: Phase 3
+            "redis": "not_configured",  # TODO: Phase 6
+        },
     }
 
+    return health_status
 
-# Root endpoint
-@app.get("/", tags=["Root"])
-async def root():
-    """Root endpoint with API information."""
+
+@app.get(
+    "/info",
+    tags=["Info"],
+    summary="API Information",
+    description="Returns detailed API configuration (development only)",
+)
+async def api_info():
+    """
+    Returns API configuration information.
+
+    Only available in development mode for security.
+
+    Returns:
+        dict: API configuration details
+    """
+    if not settings.is_development:
+        return {"detail": "Not available in production"}
+
     return {
-        "message": f"Welcome to {settings.app_name}",
+        "app_name": settings.app_name,
         "version": settings.app_version,
-        "docs": "/docs" if settings.debug else "Disabled in production",
+        "environment": settings.environment,
+        "debug": settings.debug,
+        "api_prefix": settings.api_v1_prefix,
+        "cors_origins": settings.cors_origins,
+        "docs_enabled": settings.docs_enabled,
+        "rate_limit_enabled": settings.rate_limit_enabled,
+        "rate_limit_per_minute": settings.rate_limit_per_minute,
     }
+
+
+# ==================== API Router (TODO: Phase 5) ====================
+
+from app.api.v1.router import api_router
+
+app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+
+# ==================== Run with Uvicorn ====================
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "app.main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.reload and settings.is_development,
+        workers=settings.workers if not settings.reload else 1,
+        log_level=settings.log_level.lower(),
+    )
