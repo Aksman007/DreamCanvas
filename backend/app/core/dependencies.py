@@ -1,57 +1,97 @@
-# app/core/dependencies.py
+"""
+Dependencies Module
 
-from typing import Annotated, AsyncGenerator
+FastAPI dependency injection for common operations.
+"""
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
+import logging
+from typing import Annotated
+from collections.abc import AsyncGenerator
 
-from app.db.session import async_session_maker
-from app.core.security import verify_token, TokenPayload
-from app.core.exceptions import InvalidTokenError, TokenExpiredError
-from app.models.user import User
-from app.config import get_settings, Settings
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.config import Settings, get_settings
+from app.core.security import TokenPayload, verify_token
+from app.core.exceptions import (
+    InvalidTokenError,
+    MissingTokenError,
+    TokenExpiredError,
+    AccountDeactivatedError,
+    UserNotFoundError,
+)
+
+logger = logging.getLogger(__name__)
 
 
-# ============== Settings Dependency ==============
+# ============================================================================
+# SETTINGS DEPENDENCY
+# ============================================================================
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
-# ============== Database Session Dependency ==============
+# ============================================================================
+# DATABASE DEPENDENCY (Placeholder - Implemented in Phase 3)
+# ============================================================================
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+# Placeholder type for now - will be replaced with actual AsyncSession
+class DatabaseSession:
+    """Placeholder for database session."""
+
+    pass
+
+
+async def get_db() -> AsyncGenerator[DatabaseSession, None]:
     """
     Dependency that provides a database session.
-    Automatically handles commit/rollback and session cleanup.
+
+    Note: This is a placeholder. Actual implementation in Phase 3.
+
+    Yields:
+        AsyncSession: Database session
     """
-    async with async_session_maker() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    # TODO: Implement in Phase 3
+    # async with async_session_maker() as session:
+    #     try:
+    #         yield session
+    #         await session.commit()
+    #     except Exception:
+    #         await session.rollback()
+    #         raise
+    #     finally:
+    #         await session.close()
+
+    yield DatabaseSession()
 
 
-DBSession = Annotated[AsyncSession, Depends(get_db)]
+DBSession = Annotated[DatabaseSession, Depends(get_db)]
 
 
-# ============== Authentication Dependencies ==============
+# ============================================================================
+# AUTHENTICATION DEPENDENCIES
+# ============================================================================
 
-# HTTP Bearer token security scheme
+# HTTP Bearer token scheme
+# auto_error=False allows us to handle missing tokens ourselves
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-async def get_current_token(
+async def get_token_from_header(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-) -> TokenPayload:
+) -> str:
     """
-    Dependency to extract and validate the access token.
-    Raises HTTPException if token is missing or invalid.
+    Extract JWT token from Authorization header.
+
+    Args:
+        credentials: HTTP Bearer credentials
+
+    Returns:
+        JWT token string
+
+    Raises:
+        HTTPException: If no token provided
     """
     if credentials is None:
         raise HTTPException(
@@ -60,7 +100,24 @@ async def get_current_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = credentials.credentials
+    return credentials.credentials
+
+
+async def get_current_token(
+    token: Annotated[str, Depends(get_token_from_header)],
+) -> TokenPayload:
+    """
+    Validate and decode the current access token.
+
+    Args:
+        token: JWT token from Authorization header
+
+    Returns:
+        TokenPayload: Decoded token data
+
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
     payload = verify_token(token, token_type="access")
 
     if payload is None:
@@ -73,58 +130,125 @@ async def get_current_token(
     return payload
 
 
+# Type alias for token dependency
 TokenDep = Annotated[TokenPayload, Depends(get_current_token)]
 
 
-async def get_current_user(token: TokenDep, db: DBSession) -> User:
+# ============================================================================
+# USER DEPENDENCIES (Placeholder - Full implementation in Phase 3)
+# ============================================================================
+
+
+class UserPlaceholder:
     """
-    Dependency to get the current authenticated user.
-    Loads full user object from database.
+    Placeholder User class until models are implemented.
+
+    Represents the current authenticated user.
     """
-    from app.models.user import User
 
-    user = await db.get(User, token.sub)
+    def __init__(
+        self,
+        id: str,
+        email: str = "user@example.com",
+        is_active: bool = True,
+        is_superuser: bool = False,
+    ) -> None:
+        self.id = id
+        self.email = email
+        self.is_active = is_active
+        self.is_superuser = is_superuser
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
-        )
 
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated"
-        )
+async def get_current_user(
+    token: TokenDep,
+    db: DBSession,
+) -> UserPlaceholder:
+    """
+    Get the current authenticated user.
+
+    Args:
+        token: Validated token payload
+        db: Database session
+
+    Returns:
+        User: Current user object
+
+    Raises:
+        HTTPException: If user not found or deactivated
+
+    Note: This is a placeholder. Full implementation in Phase 3.
+    """
+    # TODO: Implement actual user lookup in Phase 3
+    # user = await db.get(User, token.sub)
+    # if user is None:
+    #     raise UserNotFoundError(token.sub)
+    # if not user.is_active:
+    #     raise AccountDeactivatedError()
+    # return user
+
+    # Placeholder implementation
+    user = UserPlaceholder(
+        id=token.sub,
+        email="user@example.com",
+        is_active=True,
+        is_superuser=False,
+    )
 
     return user
 
 
-CurrentUser = Annotated[User, Depends(get_current_user)]
+# Type alias for current user dependency
+CurrentUser = Annotated[UserPlaceholder, Depends(get_current_user)]
 
 
-async def get_current_active_superuser(current_user: CurrentUser) -> User:
+async def get_current_active_superuser(
+    current_user: CurrentUser,
+) -> UserPlaceholder:
     """
-    Dependency to ensure current user is a superuser.
+    Get current user and verify they are a superuser.
+
+    Args:
+        current_user: Current authenticated user
+
+    Returns:
+        User: Current superuser
+
+    Raises:
+        HTTPException: If user is not a superuser
     """
     if not current_user.is_superuser:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superuser access required",
         )
+
     return current_user
 
 
-SuperUser = Annotated[User, Depends(get_current_active_superuser)]
+# Type alias for superuser dependency
+SuperUser = Annotated[UserPlaceholder, Depends(get_current_active_superuser)]
 
 
-# ============== Optional Authentication ==============
+# ============================================================================
+# OPTIONAL AUTHENTICATION
+# ============================================================================
 
 
 async def get_optional_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     db: DBSession,
-) -> User | None:
+) -> UserPlaceholder | None:
     """
-    Dependency that returns current user if authenticated, None otherwise.
+    Get current user if authenticated, None otherwise.
+
     Useful for endpoints that work for both authenticated and anonymous users.
+
+    Args:
+        credentials: Optional HTTP Bearer credentials
+        db: Database session
+
+    Returns:
+        User if authenticated, None otherwise
     """
     if credentials is None:
         return None
@@ -135,14 +259,77 @@ async def get_optional_current_user(
     if payload is None:
         return None
 
-    from app.models.user import User
-
-    user = await db.get(User, payload.sub)
-
-    if user is None or not user.is_active:
-        return None
-
-    return user
+    # TODO: Implement actual user lookup in Phase 3
+    return UserPlaceholder(
+        id=payload.sub,
+        email="user@example.com",
+        is_active=True,
+    )
 
 
-OptionalUser = Annotated[User | None, Depends(get_optional_current_user)]
+# Type alias for optional user dependency
+OptionalUser = Annotated[UserPlaceholder | None, Depends(get_optional_current_user)]
+
+
+# ============================================================================
+# REQUEST CONTEXT DEPENDENCIES
+# ============================================================================
+
+
+def get_request_id(request: Request) -> str:
+    """
+    Get the current request ID.
+
+    Args:
+        request: FastAPI request object
+
+    Returns:
+        Request ID string (set by RequestLoggingMiddleware)
+    """
+    return getattr(request.state, "request_id", "unknown")
+
+
+RequestID = Annotated[str, Depends(get_request_id)]
+
+
+# ============================================================================
+# PAGINATION DEPENDENCIES
+# ============================================================================
+
+
+class PaginationParams:
+    """Common pagination parameters."""
+
+    def __init__(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        max_page_size: int = 100,
+    ) -> None:
+        self.page = max(1, page)
+        self.page_size = min(max(1, page_size), max_page_size)
+        self.offset = (self.page - 1) * self.page_size
+
+    @property
+    def limit(self) -> int:
+        return self.page_size
+
+
+async def get_pagination(
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginationParams:
+    """
+    Dependency for pagination parameters.
+
+    Args:
+        page: Page number (1-indexed)
+        page_size: Items per page (max 100)
+
+    Returns:
+        PaginationParams object
+    """
+    return PaginationParams(page=page, page_size=page_size)
+
+
+Pagination = Annotated[PaginationParams, Depends(get_pagination)]
