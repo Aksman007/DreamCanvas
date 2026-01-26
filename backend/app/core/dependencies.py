@@ -2,6 +2,7 @@
 
 import logging
 from typing import Annotated, AsyncGenerator
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -67,14 +68,27 @@ TokenDep = Annotated[TokenPayload, Depends(get_current_token)]
 # ==================== User Dependencies ====================
 async def get_current_user(token: TokenDep, db: DBSession) -> User:
     """Get the current authenticated user from database."""
-    result = await db.execute(select(User).where(User.id == token.sub))
+    try:
+        # Convert string to UUID
+        user_id = UUID(token.sub)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token: bad user ID format",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated",
         )
 
     return user
@@ -87,7 +101,8 @@ async def get_current_active_superuser(current_user: CurrentUser) -> User:
     """Get current user and verify they are a superuser."""
     if not current_user.is_superuser:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Superuser access required"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superuser access required",
         )
     return current_user
 
@@ -108,7 +123,12 @@ async def get_optional_current_user(
     if payload is None:
         return None
 
-    result = await db.execute(select(User).where(User.id == payload.sub))
+    try:
+        user_id = UUID(payload.sub)
+    except ValueError:
+        return None
+
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active:

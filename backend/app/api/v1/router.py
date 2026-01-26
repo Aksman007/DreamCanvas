@@ -1,16 +1,24 @@
 """
-API v1 Router
-
-Aggregates all v1 API routes.
+API v1 Router - Aggregates all v1 API routes.
 """
 
 from fastapi import APIRouter
 
-from app.core.dependencies import CurrentUser, OptionalUser, TokenDep
+from app.api.v1 import auth
+from app.core.dependencies import CurrentUser, OptionalUser
 from app.core.security import create_token_pair, hash_password, verify_password
 
 # Create main API router
 api_router = APIRouter()
+
+
+# ==================== Include Sub-Routers ====================
+
+api_router.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["Authentication"],
+)
 
 
 # ==================== API Root ====================
@@ -19,34 +27,37 @@ api_router = APIRouter()
 @api_router.get(
     "/",
     summary="API v1 Root",
+    tags=["API Info"],
 )
 async def api_v1_root():
-    """API v1 root endpoint."""
+    """API v1 root endpoint - lists available endpoints."""
     return {
         "message": "DreamCanvas API v1",
+        "version": "1.0.0",
         "endpoints": {
-            "auth": "/api/v1/auth",
-            "generate": "/api/v1/generate",
-            "chat": "/api/v1/chat",
-            "gallery": "/api/v1/gallery",
+            "auth": {
+                "register": "POST /api/v1/auth/register",
+                "login": "POST /api/v1/auth/login",
+                "refresh": "POST /api/v1/auth/refresh",
+            },
+            "generate": "Coming in Phase 5",
+            "chat": "Coming in Phase 5",
+            "gallery": "Coming in Phase 5",
         },
     }
 
 
-# ==================== Test Auth Endpoints ====================
+# ==================== Test Endpoints (Development Only) ====================
 
 
 @api_router.post(
     "/test/token",
     summary="Generate test token",
     tags=["Testing"],
+    include_in_schema=True,  # Set to False in production
 )
 async def generate_test_token(user_id: str = "test-user-123"):
-    """
-    Generate a test JWT token pair.
-
-    FOR DEVELOPMENT/TESTING ONLY.
-    """
+    """Generate a test JWT token pair. FOR DEVELOPMENT ONLY."""
     tokens = create_token_pair(subject=user_id)
     return {
         "message": "Test tokens generated",
@@ -61,16 +72,12 @@ async def generate_test_token(user_id: str = "test-user-123"):
     tags=["Testing"],
 )
 async def test_protected_endpoint(current_user: CurrentUser):
-    """
-    Test endpoint that requires authentication.
-
-    Use the access_token from /test/token in the Authorization header:
-    Authorization: Bearer <access_token>
-    """
+    """Test endpoint that requires authentication."""
     return {
         "message": "You are authenticated!",
-        "user_id": current_user.id,
+        "user_id": str(current_user.id),
         "email": current_user.email,
+        "display_name": current_user.display_name,
     }
 
 
@@ -80,43 +87,14 @@ async def test_protected_endpoint(current_user: CurrentUser):
     tags=["Testing"],
 )
 async def test_optional_auth(user: OptionalUser):
-    """
-    Test endpoint that works with or without authentication.
-    """
+    """Test endpoint that works with or without authentication."""
     if user:
         return {
             "authenticated": True,
-            "user_id": user.id,
+            "user_id": str(user.id),
+            "email": user.email,
         }
     return {
         "authenticated": False,
         "message": "Anonymous access",
     }
-
-
-@api_router.post(
-    "/test/password",
-    summary="Test password hashing",
-    tags=["Testing"],
-)
-async def test_password_hashing(password: str = "testpassword123"):
-    """
-    Test password hashing and verification.
-
-    FOR DEVELOPMENT/TESTING ONLY.
-    """
-    hashed = hash_password(password)
-    is_valid = verify_password(password, hashed)
-
-    return {
-        "original": password,
-        "hashed": hashed,
-        "verification": is_valid,
-    }
-
-
-# ==================== Include Sub-Routers (TODO: Phase 5) ====================
-
-# from app.api.v1 import auth, generation, conversation, gallery
-# api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-# api_router.include_router(generation.router, prefix="/generate", tags=["Generation"])
