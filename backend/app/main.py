@@ -1,8 +1,4 @@
-"""
-DreamCanvas API - Main Application Entry Point
-
-This module creates and configures the FastAPI application.
-"""
+"""DreamCanvas API - Main Application Entry Point"""
 
 import logging
 from contextlib import asynccontextmanager
@@ -21,52 +17,40 @@ from app.core.middleware import (
     SecurityHeadersMiddleware,
 )
 from app.api.v1.router import api_router
+from app.db.session import init_db, close_db, check_db_connection
 
-# ==================== Logging Configuration ====================
 
-logging.basicConfig(
-    level=getattr(logging, settings.log_level),
-    format=settings.log_format,
-)
+# Logging
+logging.basicConfig(level=getattr(logging, settings.log_level), format=settings.log_format)
 logger = logging.getLogger(__name__)
 
 
-# ==================== Lifespan Events ====================
-
-
+# ==================== Lifespan ====================
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Application lifespan manager.
-
-    Handles startup and shutdown events.
-    """
-    # ===== Startup =====
+    """Application lifespan manager."""
     logger.info("=" * 60)
     logger.info(f"🚀 Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"📍 Environment: {settings.environment}")
     logger.info(f"🔧 Debug mode: {settings.debug}")
-    logger.info(f"🌐 API Prefix: {settings.api_v1_prefix}")
     logger.info("=" * 60)
 
-    # TODO: Initialize database connection (Phase 3)
-    # TODO: Initialize Redis connection (Phase 6)
+    # Initialize database
+    await init_db()
+
+    from app.db.init_db import init_db as initialize_database
+
+    await initialize_database()
 
     logger.info("✅ Application startup complete")
+    yield
 
-    yield  # Application runs here
-
-    # ===== Shutdown =====
     logger.info("Shutting down application...")
-
-    # TODO: Close database connection (Phase 3)
-    # TODO: Close Redis connection (Phase 6)
-
+    await close_db()
     logger.info("✅ Application shutdown complete")
 
 
-# ==================== Create FastAPI Application ====================
-
+# ==================== Create App ====================
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -78,22 +62,14 @@ app = FastAPI(
 )
 
 
-# ==================== Middleware (Order Matters!) ====================
-
-# 1. Security Headers (outermost - runs first on response)
+# ==================== Middleware ====================
 app.add_middleware(SecurityHeadersMiddleware)
 
-# 2. Rate Limiting
 if settings.rate_limit_enabled:
-    app.add_middleware(
-        RateLimitMiddleware,
-        requests_per_minute=settings.rate_limit_per_minute,
-    )
+    app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.rate_limit_per_minute)
 
-# 3. Request Logging
 app.add_middleware(RequestLoggingMiddleware)
 
-# 4. CORS (innermost - runs last on response)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -104,74 +80,33 @@ app.add_middleware(
 
 
 # ==================== Exception Handlers ====================
-
-
 @app.exception_handler(DreamCanvasException)
 async def dreamcanvas_exception_handler(
-    request: Request,
-    exc: DreamCanvasException,
+    request: Request, exc: DreamCanvasException
 ) -> JSONResponse:
-    """
-    Handle custom DreamCanvas exceptions.
-
-    Converts exceptions to proper JSON responses with status codes.
-    """
-    logger.warning(
-        f"DreamCanvas exception: {exc.error_code} - {exc.message}",
-        extra={"details": exc.details},
-    )
-
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=exc.to_dict(),
-    )
+    return JSONResponse(status_code=exc.status_code, content=exc.to_dict())
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError,
+    request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """
-    Handle Pydantic validation errors.
-
-    Provides detailed error information for invalid requests.
-    """
-    errors = []
-    for error in exc.errors():
-        errors.append(
-            {
-                "field": ".".join(str(loc) for loc in error["loc"]),
-                "message": error["msg"],
-                "type": error["type"],
-            }
-        )
-
+    errors = [
+        {"field": ".".join(str(loc) for loc in e["loc"]), "message": e["msg"]} for e in exc.errors()
+    ]
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": "VALIDATION_ERROR",
-            "message": "Request validation failed",
+            "message": "Validation failed",
             "details": {"errors": errors},
         },
     )
 
 
 @app.exception_handler(Exception)
-async def global_exception_handler(
-    request: Request,
-    exc: Exception,
-) -> JSONResponse:
-    """
-    Global exception handler for unhandled exceptions.
-
-    In development: Shows detailed error information
-    In production: Shows generic error message
-    """
-    # Log the full exception
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception(f"Unhandled exception: {exc}")
-
-    # In development, show details
     if settings.is_development:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -181,30 +116,18 @@ async def global_exception_handler(
                 "type": exc.__class__.__name__,
             },
         )
-
-    # In production, hide details
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "error": "INTERNAL_ERROR",
-            "message": "An unexpected error occurred",
-        },
+        content={"error": "INTERNAL_ERROR", "message": "An unexpected error occurred"},
     )
 
 
 # ==================== Include API Router ====================
-
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 
 # ==================== Root Endpoints ====================
-
-
-@app.get(
-    "/",
-    tags=["Root"],
-    summary="Root endpoint",
-)
+@app.get("/", tags=["Root"])
 async def root():
     """Root endpoint with API information."""
     return {
@@ -217,28 +140,24 @@ async def root():
     }
 
 
-@app.get(
-    "/health",
-    tags=["Health"],
-    summary="Health check",
-)
+@app.get("/health", tags=["Health"])
 async def health_check():
-    """Health check endpoint for monitoring."""
+    """Health check endpoint."""
+    db_healthy = await check_db_connection()
     return {
-        "status": "healthy",
+        "status": "healthy" if db_healthy else "degraded",
         "service": settings.app_name,
         "version": settings.app_version,
         "environment": settings.environment,
         "checks": {
             "api": "healthy",
-            "database": "not_configured",  # TODO: Phase 3
-            "redis": "not_configured",  # TODO: Phase 6
+            "database": "healthy" if db_healthy else "unhealthy",
+            "redis": "not_configured",
         },
     }
 
 
-# ==================== Run with Uvicorn ====================
-
+# ==================== Run ====================
 if __name__ == "__main__":
     import uvicorn
 
@@ -246,6 +165,6 @@ if __name__ == "__main__":
         "app.main:app",
         host=settings.host,
         port=settings.port,
-        reload=settings.reload and settings.is_development,
+        reload=settings.is_development,
         log_level=settings.log_level.lower(),
     )

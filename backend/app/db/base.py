@@ -1,16 +1,19 @@
-# app/db/base.py
+"""
+Database Base Model - Provides base class and mixins for all SQLAlchemy models.
+"""
 
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import MetaData, DateTime, func
+from sqlalchemy import DateTime, MetaData, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, declared_attr
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 
-# Naming convention for constraints (helps with migrations)
-convention = {
+# Naming convention for database constraints
+NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
     "ck": "ck_%(table_name)s_%(constraint_name)s",
@@ -18,33 +21,50 @@ convention = {
     "pk": "pk_%(table_name)s",
 }
 
-metadata = MetaData(naming_convention=convention)
+metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
 class Base(DeclarativeBase):
-    """
-    Base class for all SQLAlchemy models.
-    Provides common columns and utilities.
-    """
+    """Base class for all SQLAlchemy models."""
 
     metadata = metadata
 
-    # Generate __tablename__ automatically from class name
     @declared_attr.directive
     def __tablename__(cls) -> str:
-        """Convert CamelCase class name to snake_case table name."""
+        """Generate table name from class name (CamelCase -> snake_case + s)."""
         name = cls.__name__
-        # Convert CamelCase to snake_case
-        import re
-
-        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
-        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower() + "s"
+        s1 = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
+        snake_case = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+        return f"{snake_case}s"
 
     def to_dict(self) -> dict[str, Any]:
         """Convert model instance to dictionary."""
-        return {
-            column.name: getattr(self, column.name) for column in self.__table__.columns
-        }
+        result = {}
+        for column in self.__table__.columns:
+            value = getattr(self, column.name)
+            if isinstance(value, uuid.UUID):
+                value = str(value)
+            elif isinstance(value, datetime):
+                value = value.isoformat()
+            result[column.name] = value
+        return result
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        if hasattr(self, "id"):
+            return f"<{class_name} id={self.id}>"
+        return f"<{class_name}>"
+
+
+class UUIDMixin:
+    """Mixin that adds UUID primary key."""
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        index=True,
+    )
 
 
 class TimestampMixin:
@@ -66,19 +86,13 @@ class TimestampMixin:
     )
 
 
-class UUIDMixin:
-    """Mixin that adds UUID primary key."""
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
-    )
-
-
 class SoftDeleteMixin:
     """Mixin for soft delete functionality."""
 
     deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None, nullable=True
+        DateTime(timezone=True),
+        default=None,
+        nullable=True,
     )
 
     @property
@@ -90,3 +104,15 @@ class SoftDeleteMixin:
 
     def restore(self) -> None:
         self.deleted_at = None
+
+
+class BaseModel(Base, UUIDMixin, TimestampMixin):
+    """Combined base model with UUID and timestamps. Most models inherit from this."""
+
+    __abstract__ = True
+
+
+class SoftDeleteModel(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
+    """Combined base model with UUID, timestamps, and soft delete."""
+
+    __abstract__ = True

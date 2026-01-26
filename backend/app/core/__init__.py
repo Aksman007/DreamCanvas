@@ -1,7 +1,5 @@
 """
-Core Module
-
-Contains security, exceptions, middleware, and dependencies.
+Core Module - Contains security, exceptions, middleware, and dependencies.
 """
 
 from app.core.security import (
@@ -39,16 +37,8 @@ from app.core.exceptions import (
     StorageError,
 )
 
-from app.core.dependencies import (
-    SettingsDep,
-    DBSession,
-    TokenDep,
-    CurrentUser,
-    SuperUser,
-    OptionalUser,
-    Pagination,
-    RequestID,
-)
+# Note: Don't import dependencies here to avoid circular imports
+# Import them directly where needed: from app.core.dependencies import ...
 
 __all__ = [
     # Security
@@ -82,13 +72,4 @@ __all__ = [
     "ClaudeAPIError",
     "ImageGenerationError",
     "StorageError",
-    # Dependencies
-    "SettingsDep",
-    "DBSession",
-    "TokenDep",
-    "CurrentUser",
-    "SuperUser",
-    "OptionalUser",
-    "Pagination",
-    "RequestID",
 ]
