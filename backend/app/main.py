@@ -6,21 +6,21 @@ from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 
+from app.api.v1.router import api_router
 from app.config import settings
 from app.core.exceptions import DreamCanvasException
 from app.core.middleware import (
-    RequestLoggingMiddleware,
     RateLimitMiddleware,
+    RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
 )
-from app.api.v1.router import api_router
-from app.db.session import init_db, close_db, check_db_connection
 from app.db.init_db import init_db as initialize_database
+from app.db.session import check_db_connection, close_db, init_db
 
 # Logging
 logging.basicConfig(level=getattr(logging, settings.log_level), format=settings.log_format)
