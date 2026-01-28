@@ -4,9 +4,9 @@ API v1 Router - Aggregates all v1 API routes.
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth
+from app.api.v1 import auth, generate, gallery, chat
 from app.core.dependencies import CurrentUser, OptionalUser
-from app.core.security import create_token_pair, hash_password, verify_password
+from app.core.security import create_token_pair
 
 # Create main API router
 api_router = APIRouter()
@@ -18,6 +18,24 @@ api_router.include_router(
     auth.router,
     prefix="/auth",
     tags=["Authentication"],
+)
+
+api_router.include_router(
+    generate.router,
+    prefix="/generate",
+    tags=["Image Generation"],
+)
+
+api_router.include_router(
+    gallery.router,
+    prefix="/gallery",
+    tags=["Gallery"],
+)
+
+api_router.include_router(
+    chat.router,
+    prefix="/chat",
+    tags=["Chat"],
 )
 
 
@@ -39,22 +57,33 @@ async def api_v1_root():
                 "register": "POST /api/v1/auth/register",
                 "login": "POST /api/v1/auth/login",
                 "refresh": "POST /api/v1/auth/refresh",
+                "me": "GET /api/v1/auth/me",
+                "update_profile": "PATCH /api/v1/auth/me",
             },
-            "generate": "Coming in Phase 5",
-            "chat": "Coming in Phase 5",
-            "gallery": "Coming in Phase 5",
+            "generate": {
+                "create": "POST /api/v1/generate",
+                "get": "GET /api/v1/generate/{id}",
+                "delete": "DELETE /api/v1/generate/{id}",
+            },
+            "gallery": {
+                "list": "GET /api/v1/gallery",
+            },
+            "chat": {
+                "chat": "POST /api/v1/chat",
+                "enhance": "POST /api/v1/chat/enhance",
+            },
         },
     }
 
 
-# ==================== Test Endpoints (Development Only) ====================
+# ==================== Test Endpoints ====================
 
 
 @api_router.post(
     "/test/token",
     summary="Generate test token",
     tags=["Testing"],
-    include_in_schema=True,  # Set to False in production
+    include_in_schema=True,
 )
 async def generate_test_token(user_id: str = "test-user-123"):
     """Generate a test JWT token pair. FOR DEVELOPMENT ONLY."""
@@ -77,7 +106,6 @@ async def test_protected_endpoint(current_user: CurrentUser):
         "message": "You are authenticated!",
         "user_id": str(current_user.id),
         "email": current_user.email,
-        "display_name": current_user.display_name,
     }
 
 

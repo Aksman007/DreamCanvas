@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
 
 if TYPE_CHECKING:
-    pass  # Future imports for relationships
+    from app.models.generation import Generation
 
 
 class User(BaseModel):
@@ -81,6 +81,15 @@ class User(BaseModel):
         nullable=True,
     )
 
+    # ==================== Relationships ====================
+    generations: Mapped[list["Generation"]] = relationship(
+        "Generation",
+        back_populates="user",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+
+    # ==================== Methods ====================
     def __repr__(self) -> str:
         return f"<User {self.email}>"
 

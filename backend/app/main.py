@@ -2,12 +2,14 @@
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.core.exceptions import DreamCanvasException
@@ -18,14 +20,13 @@ from app.core.middleware import (
 )
 from app.api.v1.router import api_router
 from app.db.session import init_db, close_db, check_db_connection
-
+from app.db.init_db import init_db as initialize_database
 
 # Logging
 logging.basicConfig(level=getattr(logging, settings.log_level), format=settings.log_format)
 logger = logging.getLogger(__name__)
 
 
-# ==================== Lifespan ====================
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
@@ -33,14 +34,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"🚀 Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"📍 Environment: {settings.environment}")
     logger.info(f"🔧 Debug mode: {settings.debug}")
+    logger.info(f"🤖 Claude: {'✅' if settings.has_claude else '❌'}")
+    logger.info(f"🎨 DALL-E: {'✅' if settings.has_dalle else '❌'}")
+    logger.info(f"💾 Storage: {settings.storage_provider}")
     logger.info("=" * 60)
 
     # Initialize database
     await init_db()
-
-    from app.db.init_db import init_db as initialize_database
-
     await initialize_database()
+
+    # Create local storage directories
+    if settings.storage_provider == "local":
+        storage_path = Path(settings.local_storage_path)
+        (storage_path / "images").mkdir(parents=True, exist_ok=True)
+        (storage_path / "thumbnails").mkdir(parents=True, exist_ok=True)
+        logger.info(f"📁 Local storage: {storage_path.absolute()}")
 
     logger.info("✅ Application startup complete")
     yield
@@ -50,7 +58,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("✅ Application shutdown complete")
 
 
-# ==================== Create App ====================
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -77,6 +84,13 @@ app.add_middleware(
     allow_methods=settings.cors_allow_methods,
     allow_headers=settings.cors_allow_headers,
 )
+
+
+# ==================== Static Files (Local Storage) ====================
+if settings.storage_provider == "local":
+    storage_path = Path(settings.local_storage_path)
+    storage_path.mkdir(parents=True, exist_ok=True)
+    app.mount("/storage", StaticFiles(directory=str(storage_path)), name="storage")
 
 
 # ==================== Exception Handlers ====================
@@ -144,6 +158,14 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     db_healthy = await check_db_connection()
+
+    # Check AI services
+    from app.services.claude_service import get_claude_service
+    from app.services.image_gen_service import get_image_gen_service
+
+    claude = get_claude_service()
+    image_gen = get_image_gen_service()
+
     return {
         "status": "healthy" if db_healthy else "degraded",
         "service": settings.app_name,
@@ -152,12 +174,14 @@ async def health_check():
         "checks": {
             "api": "healthy",
             "database": "healthy" if db_healthy else "unhealthy",
-            "redis": "not_configured",
+            "claude": "configured" if claude.is_available else "not_configured",
+            "dalle": "configured" if image_gen.dalle.is_available else "not_configured",
+            "stability": "configured" if image_gen.stability.is_available else "not_configured",
+            "storage": settings.storage_provider,
         },
     }
 
 
-# ==================== Run ====================
 if __name__ == "__main__":
     import uvicorn
 
