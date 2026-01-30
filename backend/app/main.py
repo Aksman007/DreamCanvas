@@ -37,6 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"🤖 Claude: {'✅' if settings.has_claude else '❌'}")
     logger.info(f"🎨 DALL-E: {'✅' if settings.has_dalle else '❌'}")
     logger.info(f"💾 Storage: {settings.storage_provider}")
+    logger.info(f"⚡ Async generation: {'✅' if settings.generation_async else '❌'}")
     logger.info("=" * 60)
 
     # Initialize database
@@ -50,10 +51,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         (storage_path / "thumbnails").mkdir(parents=True, exist_ok=True)
         logger.info(f"📁 Local storage: {storage_path.absolute()}")
 
+    # Initialize WebSocket manager
+    from app.api.v1.websocket import startup_websocket_manager, shutdown_websocket_manager
+
+    await startup_websocket_manager()
+
     logger.info("✅ Application startup complete")
     yield
 
+    # Shutdown
     logger.info("Shutting down application...")
+    await shutdown_websocket_manager()
     await close_db()
     logger.info("✅ Application shutdown complete")
 
@@ -157,27 +165,56 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Health check endpoint."""
-    db_healthy = await check_db_connection()
-
-    # Check AI services
+    from app.db.session import check_db_connection
     from app.services.claude_service import get_claude_service
     from app.services.image_gen_service import get_image_gen_service
+
+    db_healthy = await check_db_connection()
+
+    # Check Redis
+    redis_healthy = False
+    try:
+        import redis.asyncio as redis_client
+
+        r = redis_client.from_url(settings.redis_url)
+        await r.ping()
+        redis_healthy = True
+        await r.close()
+    except Exception:
+        pass
+
+    # Check Celery (if workers are running)
+    celery_healthy = False
+    try:
+        from app.celery_app import celery_app
+
+        inspect = celery_app.control.inspect()
+        if inspect.ping():
+            celery_healthy = True
+    except Exception:
+        pass
 
     claude = get_claude_service()
     image_gen = get_image_gen_service()
 
+    overall_status = "healthy" if (db_healthy and redis_healthy) else "degraded"
+
     return {
-        "status": "healthy" if db_healthy else "degraded",
+        "status": overall_status,
         "service": settings.app_name,
         "version": settings.app_version,
         "environment": settings.environment,
         "checks": {
             "api": "healthy",
             "database": "healthy" if db_healthy else "unhealthy",
+            "redis": "healthy" if redis_healthy else "unhealthy",
+            "celery": "healthy" if celery_healthy else "no_workers",
             "claude": "configured" if claude.is_available else "not_configured",
             "dalle": "configured" if image_gen.dalle.is_available else "not_configured",
-            "stability": "configured" if image_gen.stability.is_available else "not_configured",
             "storage": settings.storage_provider,
+        },
+        "features": {
+            "async_generation": settings.generation_async,
         },
     }
 

@@ -4,7 +4,7 @@ API v1 Router - Aggregates all v1 API routes.
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, generate, gallery, chat
+from app.api.v1 import auth, chat, gallery, generation, websocket
 from app.core.dependencies import CurrentUser, OptionalUser
 from app.core.security import create_token_pair
 
@@ -21,7 +21,7 @@ api_router.include_router(
 )
 
 api_router.include_router(
-    generate.router,
+    generation.router,
     prefix="/generate",
     tags=["Image Generation"],
 )
@@ -36,6 +36,12 @@ api_router.include_router(
     chat.router,
     prefix="/chat",
     tags=["Chat"],
+)
+
+api_router.include_router(
+    websocket.router,
+    prefix="/ws",
+    tags=["WebSocket"],
 )
 
 
@@ -63,6 +69,7 @@ async def api_v1_root():
             "generate": {
                 "create": "POST /api/v1/generate",
                 "get": "GET /api/v1/generate/{id}",
+                "status": "GET /api/v1/generate/{id}/status",
                 "delete": "DELETE /api/v1/generate/{id}",
             },
             "gallery": {
@@ -71,6 +78,9 @@ async def api_v1_root():
             "chat": {
                 "chat": "POST /api/v1/chat",
                 "enhance": "POST /api/v1/chat/enhance",
+            },
+            "websocket": {
+                "generations": "WS /api/v1/ws/generations?token=JWT_TOKEN",
             },
         },
     }
@@ -83,7 +93,6 @@ async def api_v1_root():
     "/test/token",
     summary="Generate test token",
     tags=["Testing"],
-    include_in_schema=True,
 )
 async def generate_test_token(user_id: str = "test-user-123"):
     """Generate a test JWT token pair. FOR DEVELOPMENT ONLY."""
@@ -117,12 +126,5 @@ async def test_protected_endpoint(current_user: CurrentUser):
 async def test_optional_auth(user: OptionalUser):
     """Test endpoint that works with or without authentication."""
     if user:
-        return {
-            "authenticated": True,
-            "user_id": str(user.id),
-            "email": user.email,
-        }
-    return {
-        "authenticated": False,
-        "message": "Anonymous access",
-    }
+        return {"authenticated": True, "user_id": str(user.id), "email": user.email}
+    return {"authenticated": False, "message": "Anonymous access"}

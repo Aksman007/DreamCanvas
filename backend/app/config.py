@@ -43,6 +43,7 @@ class Settings(BaseSettings):
 
     # ==================== Database ====================
     database_url: str = "postgresql+asyncpg://dreamcanvas:localdev123@localhost:5432/dreamcanvas"
+    sync_database_url: str = "postgresql://dreamcanvas:localdev123@localhost:5432/dreamcanvas"
     db_pool_size: int = 5
     db_max_overflow: int = 10
     db_pool_timeout: int = 30
@@ -51,6 +52,13 @@ class Settings(BaseSettings):
     # ==================== Redis ====================
     redis_url: str = "redis://localhost:6379/0"
     cache_ttl: int = 3600
+
+    # ==================== Celery ====================
+    celery_broker_url: str = "redis://localhost:6379/1"
+    celery_result_backend: str = "redis://localhost:6379/2"
+    celery_task_always_eager: bool = False  # Set True for testing without worker
+    celery_task_time_limit: int = 300  # 5 minutes max per task
+    celery_task_soft_time_limit: int = 270  # Soft limit before hard limit
 
     # ==================== CORS ====================
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8081"]
@@ -77,8 +85,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     dalle_model: str = "dall-e-3"
     dalle_default_size: str = "1024x1024"
-    dalle_default_quality: str = "standard"  # "standard" or "hd"
-    dalle_default_style: str = "vivid"  # "vivid" or "natural"
+    dalle_default_quality: str = "standard"
+    dalle_default_style: str = "vivid"
 
     # ==================== Stability AI (Stable Diffusion) ====================
     stability_api_key: str = ""
@@ -87,6 +95,7 @@ class Settings(BaseSettings):
     # ==================== Image Generation ====================
     default_image_provider: Literal["dalle", "stability"] = "dalle"
     max_prompt_length: int = 4000
+    generation_async: bool = True  # Use background tasks
 
     # ==================== Storage (S3/R2) ====================
     storage_provider: Literal["s3", "r2", "local"] = "local"
@@ -94,16 +103,15 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_access_key: str = ""
     s3_secret_key: str = ""
-    s3_endpoint_url: str = ""  # For R2 or MinIO
-    s3_public_url: str = ""  # Public URL prefix for generated images
+    s3_endpoint_url: str = ""
+    s3_public_url: str = ""
 
-    # Local storage (for development)
     local_storage_path: str = "./storage"
     local_storage_url: str = "http://localhost:8000/storage"
 
-    # ==================== Celery ====================
-    celery_broker_url: str = "redis://localhost:6379/1"
-    celery_result_backend: str = "redis://localhost:6379/2"
+    # ==================== WebSocket ====================
+    ws_heartbeat_interval: int = 30  # Seconds between heartbeats
+    ws_max_connections_per_user: int = 5
 
     # ==================== Validators ====================
     @field_validator("environment")
