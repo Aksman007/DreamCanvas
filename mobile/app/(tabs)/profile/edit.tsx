@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 
 import { Header } from '../../../src/components/navigation';
 import { Button, FormInput, Alert as AlertComponent } from '../../../src/components/ui';
@@ -17,6 +17,7 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { profileSchema, ProfileFormData } from '../../../src/utils/validation';
 
 export default function EditProfileScreen() {
+  const navigation = useNavigation();
   const { user, updateUser, isLoading, error, clearError } = useAuthStore();
   const [avatarUri, setAvatarUri] = useState<string | null>(user?.avatar_url || null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -33,8 +34,17 @@ export default function EditProfileScreen() {
     },
   });
 
+  // Safe navigation back
+  const goBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // Fallback to profile tab
+      router.replace('/(tabs)/profile');
+    }
+  };
+
   const pickImage = async () => {
-    // Request permission
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
@@ -44,7 +54,6 @@ export default function EditProfileScreen() {
       return;
     }
 
-    // Launch picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -54,13 +63,10 @@ export default function EditProfileScreen() {
 
     if (!result.canceled && result.assets[0]) {
       setAvatarUri(result.assets[0].uri);
-      // In a full implementation, you would upload to server here
-      // For now, we'll just set locally
     }
   };
 
   const takePhoto = async () => {
-    // Request permission
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
@@ -70,7 +76,6 @@ export default function EditProfileScreen() {
       return;
     }
 
-    // Launch camera
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
@@ -114,9 +119,15 @@ export default function EditProfileScreen() {
       await updateUser({
         display_name: data.displayName || null,
         bio: data.bio || null,
-        // avatar_url would be updated after upload in full implementation
       });
-      router.back();
+      
+      // Show success and navigate back safely
+      Alert.alert('Success', 'Profile updated successfully', [
+        {
+          text: 'OK',
+          onPress: goBack,
+        },
+      ]);
     } catch (err) {
       // Error is handled by the store
     }
@@ -129,6 +140,7 @@ export default function EditProfileScreen() {
       <Header
         title="Edit Profile"
         showBack
+        onBackPress={goBack}
         rightAction={
           <Button
             title="Save"
