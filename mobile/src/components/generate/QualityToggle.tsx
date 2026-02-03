@@ -43,8 +43,12 @@ export function QualityToggle({ value, onChange }: QualityToggleProps) {
               key={option.id}
               onPress={() => handleSelect(option.id as 'standard' | 'hd')}
               className={`
-                flex-1 flex-row items-center justify-center py-3 rounded-lg
-                ${isSelected ? 'bg-white dark:bg-gray-700 shadow-sm' : ''}
+                flex-1 mx-1 py-3 rounded-xl border-2 items-center
+                ${
+                  isSelected
+                    ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-500'
+                    : 'bg-gray-50 dark:bg-gray-800 border-transparent'
+                }
               `}
               activeOpacity={0.7}
             >
@@ -53,8 +57,8 @@ export function QualityToggle({ value, onChange }: QualityToggleProps) {
                 color={isSelected ? '#0ea5e9' : '#6b7280'}
               />
               <Text
-                className={`
-                  font-medium ml-2
+               className={`
+                  text-sm font-medium ml-2
                   ${
                     isSelected
                       ? 'text-primary-600 dark:text-primary-400'
