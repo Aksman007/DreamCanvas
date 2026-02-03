@@ -38,8 +38,8 @@ export default function LoginScreen() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: 'admin@dreamcanvas.app',
+      password: 'adminpassword123',
     },
   });
 

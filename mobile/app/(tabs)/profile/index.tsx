@@ -3,75 +3,42 @@
  */
 
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
-  User,
   Settings,
-  ChevronRight,
-  Image as ImageIcon,
-  Clock,
-  LogOut,
-  Edit,
   HelpCircle,
   Shield,
+  FileText,
+  LogOut,
+  Star,
+  Bell,
 } from 'lucide-react-native';
 
 import { Header } from '../../../src/components/navigation';
+import { Avatar, StatsCard, MenuItem } from '../../../src/components/profile';
 import { Button } from '../../../src/components/ui';
 import { useAuthStore } from '../../../src/stores/authStore';
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, isLoading } = useAuthStore();
 
-  const MenuItem = ({
-    icon: Icon,
-    label,
-    value,
-    onPress,
-    showArrow = true,
-    danger = false,
-  }: {
-    icon: any;
-    label: string;
-    value?: string;
-    onPress: () => void;
-    showArrow?: boolean;
-    danger?: boolean;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      className="flex-row items-center py-4 px-4 bg-white dark:bg-gray-900"
-      activeOpacity={0.7}
-    >
-      <View
-        className={`w-10 h-10 rounded-full items-center justify-center ${
-          danger ? 'bg-red-100 dark:bg-red-900/30' : 'bg-gray-100 dark:bg-gray-800'
-        }`}
-      >
-        <Icon size={20} color={danger ? '#ef4444' : '#6b7280'} />
-      </View>
-      <View className="flex-1 ml-3">
-        <Text
-          className={`font-medium ${
-            danger ? 'text-red-600' : 'text-gray-900 dark:text-white'
-          }`}
-        >
-          {label}
-        </Text>
-        {value && (
-          <Text className="text-sm text-gray-500 dark:text-gray-400">
-            {value}
-          </Text>
-        )}
-      </View>
-      {showArrow && <ChevronRight size={20} color="#9ca3af" />}
-    </TouchableOpacity>
-  );
-
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -82,13 +49,12 @@ export default function ProfileScreen() {
         {/* Profile Header */}
         <View className="bg-white dark:bg-gray-900 px-4 py-6 mb-4">
           <View className="flex-row items-center">
-            <View className="w-20 h-20 rounded-full bg-primary-100 dark:bg-primary-900/30 items-center justify-center">
-              {user?.avatar_url ? (
-                <View className="w-full h-full rounded-full bg-gray-300" />
-              ) : (
-                <User size={40} color="#0ea5e9" />
-              )}
-            </View>
+            <Avatar
+              uri={user?.avatar_url}
+              size="lg"
+              editable
+              onEdit={() => router.push('/(tabs)/profile/edit')}
+            />
 
             <View className="flex-1 ml-4">
               <Text className="text-xl font-bold text-gray-900 dark:text-white">
@@ -97,14 +63,20 @@ export default function ProfileScreen() {
               <Text className="text-gray-500 dark:text-gray-400">
                 {user?.email}
               </Text>
+              {user?.is_verified && (
+                <View className="flex-row items-center mt-1">
+                  <Star size={14} color="#f59e0b" fill="#f59e0b" />
+                  <Text className="text-xs text-yellow-600 ml-1">Verified</Text>
+                </View>
+              )}
             </View>
 
-            <TouchableOpacity
+            <Button
+              title="Edit"
+              variant="outline"
+              size="sm"
               onPress={() => router.push('/(tabs)/profile/edit')}
-              className="p-2 rounded-full bg-gray-100 dark:bg-gray-800"
-            >
-              <Edit size={20} color="#6b7280" />
-            </TouchableOpacity>
+            />
           </View>
 
           {user?.bio && (
@@ -115,35 +87,12 @@ export default function ProfileScreen() {
         </View>
 
         {/* Stats */}
-        <View className="bg-white dark:bg-gray-900 flex-row mb-4">
-          <View className="flex-1 items-center py-4 border-r border-gray-200 dark:border-gray-800">
-            <View className="flex-row items-center mb-1">
-              <ImageIcon size={18} color="#0ea5e9" />
-              <Text className="text-2xl font-bold text-gray-900 dark:text-white ml-2">
-                {user?.generation_count || 0}
-              </Text>
-            </View>
-            <Text className="text-sm text-gray-500 dark:text-gray-400">
-              Creations
-            </Text>
-          </View>
-
-          <View className="flex-1 items-center py-4">
-            <View className="flex-row items-center mb-1">
-              <Clock size={18} color="#d946ef" />
-              <Text className="text-sm font-medium text-gray-900 dark:text-white ml-2">
-                {user?.created_at
-                  ? new Date(user.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : 'N/A'}
-              </Text>
-            </View>
-            <Text className="text-sm text-gray-500 dark:text-gray-400">
-              Member since
-            </Text>
-          </View>
+        <View className="px-4 mb-4">
+          <StatsCard
+            generationCount={user?.generation_count || 0}
+            memberSince={user?.created_at || new Date().toISOString()}
+            lastGeneration={user?.last_generation_at}
+          />
         </View>
 
         {/* Menu Items */}
@@ -155,6 +104,14 @@ export default function ProfileScreen() {
           />
           <View className="h-px bg-gray-200 dark:bg-gray-800 ml-16" />
           <MenuItem
+            icon={Bell}
+            label="Notifications"
+            onPress={() => router.push('/(tabs)/profile/notifications')}
+          />
+        </View>
+
+        <View className="bg-white dark:bg-gray-900 mb-4">
+          <MenuItem
             icon={HelpCircle}
             label="Help & Support"
             onPress={() => {}}
@@ -163,6 +120,12 @@ export default function ProfileScreen() {
           <MenuItem
             icon={Shield}
             label="Privacy Policy"
+            onPress={() => {}}
+          />
+          <View className="h-px bg-gray-200 dark:bg-gray-800 ml-16" />
+          <MenuItem
+            icon={FileText}
+            label="Terms of Service"
             onPress={() => {}}
           />
         </View>

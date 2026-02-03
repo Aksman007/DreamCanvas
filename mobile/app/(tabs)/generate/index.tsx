@@ -1,8 +1,9 @@
 /**
  * Generate Screen - Main creation interface
  */
+import { useSettingsStore } from '../../../src/stores/settingsStore';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,8 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { Header } from '../../../src/components/navigation';
 import { Button, Alert as AlertComponent } from '../../../src/components/ui';
@@ -33,6 +33,8 @@ import { APP_CONFIG } from '../../../src/constants/config';
 
 export default function GenerateScreen() {
   const user = useAuthStore((state) => state.user);
+  const params = useLocalSearchParams<{ prompt?: string }>();
+
   const {
     generate,
     enhancePrompt,
@@ -43,13 +45,22 @@ export default function GenerateScreen() {
   } = useGenerationStore();
   const isGenerating = useIsGenerating();
   const error = useGenerationError();
-
+    const { defaultStyle, defaultQuality, defaultSize, autoEnhancePrompts } = useSettingsStore();
   // Form state
   const [prompt, setPrompt] = useState('');
-  const [style, setStyle] = useState(APP_CONFIG.defaultStyle);
-  const [size, setSize] = useState(APP_CONFIG.defaultSize);
-  const [quality, setQuality] = useState<'standard' | 'hd'>(APP_CONFIG.defaultQuality);
-  const [useEnhancement, setUseEnhancement] = useState(true);
+  const [style, setStyle] = useState(defaultStyle);
+  const [size, setSize] = useState(defaultSize);
+  const [quality, setQuality] = useState<'standard' | 'hd'>(defaultQuality);
+  const [useEnhancement, setUseEnhancement] = useState(autoEnhancePrompts);
+
+  // Handle incoming prompt from chat
+  useEffect(() => {
+    if (params.prompt) {
+      setPrompt(params.prompt);
+      // Clear the param to avoid re-setting on re-render
+      router.setParams({ prompt: undefined });
+    }
+  }, [params.prompt]);
 
   const canGenerate = prompt.trim().length >= 3 && !isGenerating;
 
@@ -58,11 +69,11 @@ export default function GenerateScreen() {
 
     try {
       await enhancePrompt(prompt, style);
-      if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
     } catch (err) {
-      Alert.alert('Enhancement Failed', 'Could not enhance prompt. You can still generate with your original prompt.');
+      Alert.alert(
+        'Enhancement Failed',
+        'Could not enhance prompt. You can still generate with your original prompt.'
+      );
     }
   }, [prompt, style, enhancePrompt]);
 
@@ -82,10 +93,6 @@ export default function GenerateScreen() {
 
     try {
       clearError();
-      
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }
 
       const generation = await generate({
         prompt: prompt.trim(),
@@ -98,9 +105,7 @@ export default function GenerateScreen() {
       // Navigate to progress screen
       router.push(`/(tabs)/generate/${generation.id}`);
     } catch (err: any) {
-      if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
+      // Error handled by store
     }
   }, [canGenerate, prompt, useEnhancement, style, size, quality, generate, clearError]);
 
@@ -194,7 +199,6 @@ export default function GenerateScreen() {
             onPress={handleGenerate}
             disabled={!canGenerate}
             isLoading={isGenerating}
-            className="w-full"
           />
         </View>
       </KeyboardAvoidingView>

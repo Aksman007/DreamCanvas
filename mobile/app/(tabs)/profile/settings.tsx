@@ -1,87 +1,141 @@
 /**
- * Settings Screen
+ * Settings Screen with persistent settings
  */
 
 import React from 'react';
-import { View, Text, ScrollView, Switch, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import {
   Moon,
+  Sun,
+  Smartphone,
   Bell,
   Sparkles,
   Palette,
-  ChevronRight,
-  Smartphone,
+  Image as ImageIcon,
+  Gem,
+  RotateCcw,
 } from 'lucide-react-native';
 
 import { Header } from '../../../src/components/navigation';
+import { MenuItem } from '../../../src/components/profile';
+import { Button } from '../../../src/components/ui';
+import { useSettingsStore } from '../../../src/stores/settingsStore';
+import { STYLE_PRESETS, SIZE_OPTIONS, QUALITY_OPTIONS } from '../../../src/constants/config';
 
 export default function SettingsScreen() {
-  const [darkMode, setDarkMode] = React.useState(false);
-  const [notifications, setNotifications] = React.useState(true);
-  const [autoEnhance, setAutoEnhance] = React.useState(true);
-  const [haptics, setHaptics] = React.useState(true);
+  const {
+    theme,
+    defaultStyle,
+    defaultQuality,
+    defaultSize,
+    autoEnhancePrompts,
+    notificationsEnabled,
+    hapticFeedbackEnabled,
+    setTheme,
+    setDefaultStyle,
+    setDefaultQuality,
+    setDefaultSize,
+    setAutoEnhancePrompts,
+    setNotificationsEnabled,
+    setHapticFeedbackEnabled,
+    resetToDefaults,
+  } = useSettingsStore();
 
-  const SettingToggle = ({
-    icon: Icon,
-    label,
-    description,
-    value,
-    onValueChange,
-  }: {
-    icon: any;
-    label: string;
-    description?: string;
-    value: boolean;
-    onValueChange: (value: boolean) => void;
-  }) => (
-    <View className="flex-row items-center py-4 px-4">
-      <View className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center">
-        <Icon size={20} color="#6b7280" />
-      </View>
-      <View className="flex-1 ml-3">
-        <Text className="font-medium text-gray-900 dark:text-white">{label}</Text>
-        {description && (
-          <Text className="text-sm text-gray-500 dark:text-gray-400">
-            {description}
-          </Text>
-        )}
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
-        thumbColor="#ffffff"
-      />
-    </View>
-  );
+  const handleThemeChange = () => {
+    Alert.alert(
+      'Theme',
+      'Choose your preferred theme',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Light', onPress: () => setTheme('light') },
+        { text: 'Dark', onPress: () => setTheme('dark') },
+        { text: 'System', onPress: () => setTheme('system') },
+      ]
+    );
+  };
 
-  const SettingOption = ({
-    icon: Icon,
-    label,
-    value,
-    onPress,
-  }: {
-    icon: any;
-    label: string;
-    value: string;
-    onPress: () => void;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      className="flex-row items-center py-4 px-4"
-      activeOpacity={0.7}
-    >
-      <View className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center">
-        <Icon size={20} color="#6b7280" />
-      </View>
-      <View className="flex-1 ml-3">
-        <Text className="font-medium text-gray-900 dark:text-white">{label}</Text>
-      </View>
-      <Text className="text-gray-500 dark:text-gray-400 mr-2">{value}</Text>
-      <ChevronRight size={20} color="#9ca3af" />
-    </TouchableOpacity>
-  );
+  const handleStyleChange = () => {
+    Alert.alert(
+      'Default Style',
+      'Choose your default generation style',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        ...STYLE_PRESETS.map((style) => ({
+          text: style.label,
+          onPress: () => setDefaultStyle(style.id),
+        })),
+      ]
+    );
+  };
+
+  const handleSizeChange = () => {
+    Alert.alert(
+      'Default Size',
+      'Choose your default image size',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        ...SIZE_OPTIONS.map((size) => ({
+          text: `${size.label} (${size.aspect})`,
+          onPress: () => setDefaultSize(size.id),
+        })),
+      ]
+    );
+  };
+
+  const handleQualityChange = () => {
+    Alert.alert(
+      'Default Quality',
+      'Choose your default image quality',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        ...QUALITY_OPTIONS.map((quality) => ({
+          text: quality.label,
+          onPress: () => setDefaultQuality(quality.id as 'standard' | 'hd'),
+        })),
+      ]
+    );
+  };
+
+  const handleResetSettings = () => {
+    Alert.alert(
+      'Reset Settings',
+      'Are you sure you want to reset all settings to defaults?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: resetToDefaults,
+        },
+      ]
+    );
+  };
+
+  const getThemeLabel = () => {
+    switch (theme) {
+      case 'light':
+        return 'Light';
+      case 'dark':
+        return 'Dark';
+      default:
+        return 'System';
+    }
+  };
+
+  const getStyleLabel = () => {
+    return STYLE_PRESETS.find((s) => s.id === defaultStyle)?.label || 'Vivid';
+  };
+
+  const getSizeLabel = () => {
+    const size = SIZE_OPTIONS.find((s) => s.id === defaultSize);
+    return size ? `${size.label}` : 'Square';
+  };
+
+  const getQualityLabel = () => {
+    return QUALITY_OPTIONS.find((q) => q.id === defaultQuality)?.label || 'Standard';
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950" edges={['top']}>
@@ -89,66 +143,97 @@ export default function SettingsScreen() {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Appearance */}
-        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 px-4 pt-6 pb-2">
-          APPEARANCE
+        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 px-4 pt-6 pb-2 uppercase tracking-wide">
+          Appearance
         </Text>
         <View className="bg-white dark:bg-gray-900">
-          <SettingToggle
-            icon={Moon}
-            label="Dark Mode"
-            description="Use dark theme"
-            value={darkMode}
-            onValueChange={setDarkMode}
+          <MenuItem
+            icon={theme === 'dark' ? Moon : theme === 'light' ? Sun : Smartphone}
+            label="Theme"
+            value={getThemeLabel()}
+            onPress={handleThemeChange}
           />
         </View>
 
-        {/* Generation */}
-        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 px-4 pt-6 pb-2">
-          GENERATION
+        {/* Generation Defaults */}
+        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 px-4 pt-6 pb-2 uppercase tracking-wide">
+          Generation Defaults
         </Text>
         <View className="bg-white dark:bg-gray-900">
-          <SettingToggle
-            icon={Sparkles}
-            label="Auto-Enhance Prompts"
-            description="Use AI to improve your prompts"
-            value={autoEnhance}
-            onValueChange={setAutoEnhance}
-          />
-          <View className="h-px bg-gray-200 dark:bg-gray-800 ml-16" />
-          <SettingOption
+          <MenuItem
             icon={Palette}
             label="Default Style"
-            value="Vivid"
-            onPress={() => {}}
+            value={getStyleLabel()}
+            onPress={handleStyleChange}
+          />
+          <View className="h-px bg-gray-200 dark:bg-gray-800 ml-16" />
+          <MenuItem
+            icon={ImageIcon}
+            label="Default Size"
+            value={getSizeLabel()}
+            onPress={handleSizeChange}
+          />
+          <View className="h-px bg-gray-200 dark:bg-gray-800 ml-16" />
+          <MenuItem
+            icon={Gem}
+            label="Default Quality"
+            value={getQualityLabel()}
+            onPress={handleQualityChange}
+          />
+          <View className="h-px bg-gray-200 dark:bg-gray-800 ml-16" />
+          <MenuItem
+            icon={Sparkles}
+            label="Auto-Enhance Prompts"
+            isToggle
+            toggleValue={autoEnhancePrompts}
+            onToggle={setAutoEnhancePrompts}
           />
         </View>
 
         {/* Notifications */}
-        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 px-4 pt-6 pb-2">
-          NOTIFICATIONS
+        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 px-4 pt-6 pb-2 uppercase tracking-wide">
+          Notifications
         </Text>
         <View className="bg-white dark:bg-gray-900">
-          <SettingToggle
+          <MenuItem
             icon={Bell}
             label="Push Notifications"
-            description="Get notified when generations complete"
-            value={notifications}
-            onValueChange={setNotifications}
+            isToggle
+            toggleValue={notificationsEnabled}
+            onToggle={setNotificationsEnabled}
           />
         </View>
 
         {/* System */}
-        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 px-4 pt-6 pb-2">
-          SYSTEM
+        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 px-4 pt-6 pb-2 uppercase tracking-wide">
+          System
         </Text>
         <View className="bg-white dark:bg-gray-900">
-          <SettingToggle
+          <MenuItem
             icon={Smartphone}
             label="Haptic Feedback"
-            description="Vibrate on interactions"
-            value={haptics}
-            onValueChange={setHaptics}
+            isToggle
+            toggleValue={hapticFeedbackEnabled}
+            onToggle={setHapticFeedbackEnabled}
           />
+        </View>
+
+        {/* Reset */}
+        <View className="p-4 mt-4">
+          <Button
+            title="Reset All Settings"
+            variant="outline"
+            leftIcon={<RotateCcw size={18} color="#ef4444" />}
+            onPress={handleResetSettings}
+            style={{ borderColor: '#fecaca' }}
+          />
+        </View>
+
+        {/* Info */}
+        <View className="p-4">
+          <Text className="text-sm text-gray-400 dark:text-gray-500 text-center">
+            Settings are automatically saved and synced across sessions.
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>

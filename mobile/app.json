@@ -62,6 +62,12 @@
           "savePhotosPermission": "Allow DreamCanvas to save images to your photo library.",
           "isAccessMediaLocationEnabled": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow DreamCanvas to access your photos to set a profile picture."
+        }
       ]
     ],
     "experiments": {

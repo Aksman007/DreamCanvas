@@ -1,0 +1,9 @@
+/**
+ * Chat Components Exports
+ */
+
+export { MessageBubble } from './MessageBubble';
+export { ChatInput } from './ChatInput';
+export { SuggestedPrompts } from './SuggestedPrompts';
+export { TypingIndicator } from './TypingIndicator';
+export { PromptBanner } from './PromptBanner';

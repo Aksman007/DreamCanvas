@@ -12,25 +12,16 @@ export default function ProfileLayout() {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          title: 'Profile',
-        }}
-      />
-      <Stack.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-        }}
-      />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="settings" />
       <Stack.Screen
         name="edit"
         options={{
-          title: 'Edit Profile',
           presentation: 'modal',
+          animation: 'slide_from_bottom',
         }}
       />
+      <Stack.Screen name="notifications" />
     </Stack>
   );
 }

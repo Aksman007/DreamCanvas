@@ -2,21 +2,24 @@
  * Edit Profile Screen
  */
 
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { User, Camera } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 
 import { Header } from '../../../src/components/navigation';
-import { Button, FormInput, Alert } from '../../../src/components/ui';
+import { Button, FormInput, Alert as AlertComponent } from '../../../src/components/ui';
+import { Avatar } from '../../../src/components/profile';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { profileSchema, ProfileFormData } from '../../../src/utils/validation';
 
 export default function EditProfileScreen() {
   const { user, updateUser, isLoading, error, clearError } = useAuthStore();
+  const [avatarUri, setAvatarUri] = useState<string | null>(user?.avatar_url || null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const {
     control,
@@ -30,17 +33,96 @@ export default function EditProfileScreen() {
     },
   });
 
+  const pickImage = async () => {
+    // Request permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Please grant photo library access to change your avatar.'
+      );
+      return;
+    }
+
+    // Launch picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+      // In a full implementation, you would upload to server here
+      // For now, we'll just set locally
+    }
+  };
+
+  const takePhoto = async () => {
+    // Request permission
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Please grant camera access to take a photo.'
+      );
+      return;
+    }
+
+    // Launch camera
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+    }
+  };
+
+  const handleAvatarEdit = () => {
+    Alert.alert(
+      'Change Avatar',
+      'Choose how you want to update your profile picture',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take Photo', onPress: takePhoto },
+        { text: 'Choose from Library', onPress: pickImage },
+      ]
+    );
+  };
+
+  const handleRemoveAvatar = () => {
+    Alert.alert(
+      'Remove Avatar',
+      'Are you sure you want to remove your profile picture?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => setAvatarUri(null),
+        },
+      ]
+    );
+  };
+
   const onSubmit = async (data: ProfileFormData) => {
     try {
       await updateUser({
-        display_name: data.displayName,
-        bio: data.bio,
+        display_name: data.displayName || null,
+        bio: data.bio || null,
+        // avatar_url would be updated after upload in full implementation
       });
       router.back();
     } catch (err) {
       // Error is handled by the store
     }
   };
+
+  const hasChanges = isDirty || avatarUri !== user?.avatar_url;
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-gray-900" edges={['top']}>
@@ -53,7 +135,7 @@ export default function EditProfileScreen() {
             size="sm"
             onPress={handleSubmit(onSubmit)}
             isLoading={isLoading}
-            disabled={!isDirty}
+            disabled={!hasChanges}
           />
         }
       />
@@ -64,7 +146,7 @@ export default function EditProfileScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {error && (
-          <Alert
+          <AlertComponent
             type="error"
             message={error}
             onDismiss={clearError}
@@ -74,19 +156,16 @@ export default function EditProfileScreen() {
 
         {/* Avatar */}
         <View className="items-center mb-8">
-          <View className="relative">
-            <View className="w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/30 items-center justify-center">
-              <User size={48} color="#0ea5e9" />
-            </View>
-            <TouchableOpacity
-              className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary-600 items-center justify-center"
-              onPress={() => {}}
-            >
-              <Camera size={16} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
-          <Text className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Tap to change photo
+          <Avatar
+            uri={avatarUri}
+            size="xl"
+            editable
+            onEdit={handleAvatarEdit}
+            onRemove={avatarUri ? handleRemoveAvatar : undefined}
+            isLoading={isUploadingAvatar}
+          />
+          <Text className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+            Tap the camera icon to change your photo
           </Text>
         </View>
 
@@ -111,9 +190,41 @@ export default function EditProfileScreen() {
           style={{ height: 100, textAlignVertical: 'top' }}
         />
 
-        <Text className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-          Your email ({user?.email}) cannot be changed.
-        </Text>
+        {/* Email (read-only) */}
+        <View className="mb-4">
+          <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Email
+          </Text>
+          <View className="bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-3.5">
+            <Text className="text-gray-500 dark:text-gray-400">
+              {user?.email}
+            </Text>
+          </View>
+          <Text className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+            Email cannot be changed
+          </Text>
+        </View>
+
+        {/* Account Info */}
+        <View className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+          <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Account Information
+          </Text>
+          <View className="flex-row justify-between">
+            <Text className="text-gray-500 dark:text-gray-400">Member since</Text>
+            <Text className="text-gray-900 dark:text-white">
+              {user?.created_at
+                ? new Date(user.created_at).toLocaleDateString()
+                : 'Unknown'}
+            </Text>
+          </View>
+          <View className="flex-row justify-between mt-2">
+            <Text className="text-gray-500 dark:text-gray-400">Account status</Text>
+            <Text className="text-green-600">
+              {user?.is_active ? 'Active' : 'Inactive'}
+            </Text>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

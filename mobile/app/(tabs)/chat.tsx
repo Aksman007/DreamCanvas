@@ -2,89 +2,159 @@
  * Chat Screen - Claude AI Assistant
  */
 
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect, useCallback } from 'react';
+import {
+  View,
+  FlatList,
+  TouchableOpacity,
+  Text,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MessageCircle, Sparkles, ArrowRight } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { Trash2 } from 'lucide-react-native';
 
 import { Header } from '../../src/components/navigation';
-import { Button } from '../../src/components/ui';
-
-const SUGGESTED_PROMPTS = [
-  'Help me create a fantasy landscape',
-  'I want to make a portrait in anime style',
-  'Generate something abstract and colorful',
-  'Create a futuristic city scene',
-];
+import {
+  MessageBubble,
+  ChatInput,
+  SuggestedPrompts,
+  TypingIndicator,
+  PromptBanner,
+} from '../../src/components/chat';
+import {
+  useChatStore,
+  useChatMessages,
+  useIsChatLoading,
+  useChatError,
+  useSuggestedPrompt,
+} from '../../src/stores';
+import { Alert as AlertComponent } from '../../src/components/ui';
+import type { ChatMessage } from '../../src/types';
 
 export default function ChatScreen() {
+  const flatListRef = useRef<FlatList>(null);
+  const messages = useChatMessages();
+  const isLoading = useIsChatLoading();
+  const error = useChatError();
+  const suggestedPrompt = useSuggestedPrompt();
+
+  const { sendMessage, clearChat, clearError, setSuggestedPrompt } = useChatStore();
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages.length, isLoading]);
+
+  const handleSend = useCallback(
+    async (message: string) => {
+      await sendMessage(message);
+    },
+    [sendMessage]
+  );
+
+  const handleSuggestionSelect = useCallback(
+    (prompt: string) => {
+      handleSend(prompt);
+    },
+    [handleSend]
+  );
+
+  const handleUsePrompt = useCallback(() => {
+    if (suggestedPrompt) {
+      // Navigate to generate screen with the prompt
+      // We'll use a global state or params to pass the prompt
+      router.push({
+        pathname: '/(tabs)/generate',
+        params: { prompt: suggestedPrompt },
+      });
+      setSuggestedPrompt(null);
+    }
+  }, [suggestedPrompt, setSuggestedPrompt]);
+
+  const handleClearChat = useCallback(() => {
+    Alert.alert(
+      'Clear Chat',
+      'Are you sure you want to clear all messages?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: clearChat,
+        },
+      ]
+    );
+  }, [clearChat]);
+
+  const renderMessage = useCallback(
+    ({ item, index }: { item: ChatMessage; index: number }) => (
+      <MessageBubble
+        message={item}
+        isLast={index === messages.length - 1}
+      />
+    ),
+    [messages.length]
+  );
+
+  const hasMessages = messages.length > 0;
+
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-gray-900" edges={['top']}>
-      <Header title="AI Assistant" />
-
-      <View className="flex-1 p-4">
-        {/* Welcome Section */}
-        <View className="items-center py-8">
-          <View
-            className="w-16 h-16 rounded-2xl items-center justify-center mb-4"
-            style={{ backgroundColor: '#d946ef' }}
-          >
-            <MessageCircle size={32} color="#ffffff" />
-          </View>
-
-          <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-            Chat with AI
-          </Text>
-          <Text className="text-gray-500 dark:text-gray-400 text-center px-8">
-            Get help crafting the perfect prompt for your creation
-          </Text>
-        </View>
-
-        {/* Suggested Prompts */}
-        <View className="mt-4">
-          <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
-            TRY ASKING
-          </Text>
-
-          {SUGGESTED_PROMPTS.map((prompt, index) => (
+      <Header
+        title="AI Assistant"
+        rightAction={
+          hasMessages ? (
             <TouchableOpacity
-              key={index}
-              onPress={() => {}}
-              className="flex-row items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-2"
-              activeOpacity={0.7}
+              onPress={handleClearChat}
+              className="p-2 rounded-full active:bg-gray-100 dark:active:bg-gray-800"
             >
-              <Sparkles size={18} color="#0ea5e9" />
-              <Text className="flex-1 text-gray-700 dark:text-gray-300 ml-3">
-                {prompt}
-              </Text>
-              <ArrowRight size={18} color="#9ca3af" />
+              <Trash2 size={22} color="#6b7280" />
             </TouchableOpacity>
-          ))}
-        </View>
+          ) : undefined
+        }
+      />
 
-        {/* Coming Soon Note */}
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-400 dark:text-gray-500 text-center">
-            Full chat interface coming in Phase 6
-          </Text>
-        </View>
+      {/* Error Alert */}
+      {error && (
+        <AlertComponent
+          type="error"
+          message={error}
+          onDismiss={clearError}
+          className="mx-4 mb-2"
+        />
+      )}
 
-        {/* Input Placeholder */}
-        <View className="border-t border-gray-200 dark:border-gray-800 pt-4">
-          <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-3">
-            <Text className="flex-1 text-gray-400">
-              Type your message...
-            </Text>
-            <TouchableOpacity
-              className="w-10 h-10 rounded-full bg-primary-600 items-center justify-center"
-              disabled
-            >
-              <ArrowRight size={20} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      {/* Suggested Prompt Banner */}
+      {suggestedPrompt && (
+        <PromptBanner
+          prompt={suggestedPrompt}
+          onUse={handleUsePrompt}
+          onDismiss={() => setSuggestedPrompt(null)}
+        />
+      )}
+
+      {/* Chat Content */}
+      {hasMessages ? (
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(_, index) => `message-${index}`}
+          contentContainerStyle={{ padding: 16, paddingBottom: 8 }}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={isLoading ? <TypingIndicator /> : null}
+        />
+      ) : (
+        <SuggestedPrompts onSelect={handleSuggestionSelect} />
+      )}
+
+      {/* Chat Input */}
+      <ChatInput onSend={handleSend} isLoading={isLoading} />
     </SafeAreaView>
   );
 }
