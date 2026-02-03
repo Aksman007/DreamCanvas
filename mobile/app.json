@@ -4,12 +4,12 @@
     "slug": "dreamcanvas",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/icon.png",
     "scheme": "dreamcanvas",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
@@ -19,14 +19,31 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dreamcanvas.app",
-      "associatedDomains": ["applinks:dreamcanvas.app"]
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "DreamCanvas needs camera access to take profile photos.",
+        "NSPhotoLibraryUsageDescription": "DreamCanvas needs photo library access to save and select images.",
+        "NSPhotoLibraryAddUsageDescription": "DreamCanvas needs permission to save generated images to your photo library."
+      },
+      "associatedDomains": ["applinks:dreamcanvas.app"],
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       },
       "package": "com.dreamcanvas.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "intentFilters": [
             {
               "action": "VIEW",
@@ -49,7 +66,6 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -76,6 +92,16 @@
      "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id-here"
+      },
+      "owner": "your-expo-username",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      },
+      "updates": {
+        "url": "https://u.expo.dev/your-project-id-here"
       }
     }
   }

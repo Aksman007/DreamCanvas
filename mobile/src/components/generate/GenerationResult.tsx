@@ -26,7 +26,6 @@ import {
 } from 'lucide-react-native';
 
 import type { Generation } from '../../types';
-import { Button } from '../ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

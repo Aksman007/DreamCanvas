@@ -3,17 +3,18 @@
  */
 
 import { Platform } from 'react-native';
+import { config, isDev } from './env';
 
-// Base URL - update for production
+// Base URL - use config or fallback
 const getBaseUrl = () => {
-  if (__DEV__) {
+  if (isDev) {
     // Android emulator uses 10.0.2.2 to reach host machine
     // iOS simulator can use localhost
     return Platform.OS === 'android'
       ? 'http://10.0.2.2:8000'
       : 'http://localhost:8000';
   }
-  return 'https://api.dreamcanvas.app';
+  return config.apiUrl;
 };
 
 export const API_BASE_URL = getBaseUrl();
