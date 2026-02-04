@@ -1,0 +1,82 @@
+name: Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./mobile
+        run: npm ci
+      
+      - name: Run TypeScript check
+        working-directory: ./mobile
+        run: npm run typecheck
+      
+      - name: Run tests
+        working-directory: ./mobile
+        run: npm run test:ci
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./mobile/coverage
+          flags: unittests
+          name: codecov-mobile
+
+  e2e-tests:
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./mobile
+        run: npm ci
+      
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+      
+      - name: Build iOS app
+        working-directory: ./mobile
+        run: npx expo prebuild --platform ios && xcodebuild -workspace ios/DreamCanvas.xcworkspace -scheme DreamCanvas -configuration Debug -sdk iphonesimulator -derivedDataPath build
+      
+      - name: Start iOS Simulator
+        run: |
+          xcrun simctl boot "iPhone 15"
+          xcrun simctl install booted build/Build/Products/Debug-iphonesimulator/DreamCanvas.app
+      
+      - name: Run E2E Tests
+        working-directory: ./mobile
+        run: maestro test maestro/ --format junit --output e2e-results/
+      
+      - name: Upload E2E Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-results
+          path: mobile/e2e-results/

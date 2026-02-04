@@ -15,7 +15,7 @@ import { LoadingScreen } from '../src/components/ui';
 import { ErrorBoundary } from '../src/components/error';
 import '../global.css';
 import { Toast } from '../src/components/ui/Toast';
-import { OfflineBanner } from '@/src/components/ui/OfflineBanner';
+import { OfflineBanner } from '../src/components/ui/OfflineBanner';
 
 // Create React Query client
 const queryClient = new QueryClient({

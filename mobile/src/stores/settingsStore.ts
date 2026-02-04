@@ -26,9 +26,6 @@ interface SettingsState {
   // System
   hapticFeedbackEnabled: boolean;
   
-  // Computed
-  isDarkMode: boolean;
-  
   // Actions
   setTheme: (theme: ThemeMode) => void;
   setDefaultStyle: (style: string) => void;
@@ -38,6 +35,9 @@ interface SettingsState {
   setNotificationsEnabled: (enabled: boolean) => void;
   setHapticFeedbackEnabled: (enabled: boolean) => void;
   resetToDefaults: () => void;
+  
+  // Computed (as a method, not getter)
+  getIsDarkMode: () => boolean;
 }
 
 const DEFAULT_SETTINGS = {
@@ -56,15 +56,6 @@ export const useSettingsStore = create<SettingsState>()(
       // Initial state
       ...DEFAULT_SETTINGS,
       
-      // Computed
-      get isDarkMode() {
-        const { theme } = get();
-        if (theme === 'system') {
-          return Appearance.getColorScheme() === 'dark';
-        }
-        return theme === 'dark';
-      },
-      
       // Actions
       setTheme: (theme) => set({ theme }),
       setDefaultStyle: (defaultStyle) => set({ defaultStyle }),
@@ -74,18 +65,45 @@ export const useSettingsStore = create<SettingsState>()(
       setNotificationsEnabled: (notificationsEnabled) => set({ notificationsEnabled }),
       setHapticFeedbackEnabled: (hapticFeedbackEnabled) => set({ hapticFeedbackEnabled }),
       resetToDefaults: () => set(DEFAULT_SETTINGS),
+      
+      // Computed as method
+      getIsDarkMode: () => {
+        const { theme } = get();
+        if (theme === 'system') {
+          return Appearance.getColorScheme() === 'dark';
+        }
+        return theme === 'dark';
+      },
     }),
     {
       name: 'dreamcanvas-settings',
       storage: createJSONStorage(() => AsyncStorage),
+      // Only persist these fields
+      partialize: (state) => ({
+        theme: state.theme,
+        defaultStyle: state.defaultStyle,
+        defaultQuality: state.defaultQuality,
+        defaultSize: state.defaultSize,
+        autoEnhancePrompts: state.autoEnhancePrompts,
+        notificationsEnabled: state.notificationsEnabled,
+        hapticFeedbackEnabled: state.hapticFeedbackEnabled,
+      }),
     }
   )
 );
 
 // Selector hooks
 export const useTheme = () => useSettingsStore((state) => state.theme);
-export const useIsDarkMode = () => useSettingsStore((state) => state.isDarkMode);
 export const useDefaultStyle = () => useSettingsStore((state) => state.defaultStyle);
 export const useDefaultQuality = () => useSettingsStore((state) => state.defaultQuality);
 export const useAutoEnhance = () => useSettingsStore((state) => state.autoEnhancePrompts);
 export const useHapticFeedback = () => useSettingsStore((state) => state.hapticFeedbackEnabled);
+
+// Hook for isDarkMode (computed)
+export const useIsDarkMode = () => {
+  const theme = useSettingsStore((state) => state.theme);
+  if (theme === 'system') {
+    return Appearance.getColorScheme() === 'dark';
+  }
+  return theme === 'dark';
+};

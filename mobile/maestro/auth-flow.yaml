@@ -1,0 +1,38 @@
+# Authentication Flow E2E Test
+appId: com.dreamcanvas.app
+---
+
+# Test: Login Flow
+- launchApp:
+    clearState: true
+
+# Should see login screen
+- assertVisible: "Welcome back"
+- assertVisible: "Sign in to continue"
+
+# Try login with empty fields
+- tapOn: "Sign In"
+- assertVisible: "Email is required"
+
+# Enter invalid email
+- tapOn:
+    id: "email-input"
+- inputText: "invalid-email"
+- tapOn: "Sign In"
+- assertVisible: "Please enter a valid email"
+
+# Clear and enter valid email
+- clearText
+- inputText: "test@example.com"
+
+# Enter password
+- tapOn:
+    id: "password-input"
+- inputText: "password123"
+
+# Submit login
+- tapOn: "Sign In"
+
+# Should navigate to main app (Generate tab)
+- assertVisible: "Create"
+- assertVisible: "Welcome"

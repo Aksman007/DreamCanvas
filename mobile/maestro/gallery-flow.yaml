@@ -1,0 +1,35 @@
+# Gallery Flow E2E Test
+appId: com.dreamcanvas.app
+---
+
+# Prerequisite: User is logged in with some generations
+- launchApp
+
+# Navigate to Gallery
+- tapOn: "Gallery"
+
+# Should see gallery
+- assertVisible: "Gallery"
+
+# If gallery is empty
+- runFlow:
+    when:
+      visible: "No Creations Yet"
+    commands:
+      - tapOn: "Create Your First Image"
+      - assertVisible: "Create"
+
+# If gallery has items, tap first image
+- runFlow:
+    when:
+      notVisible: "No Creations Yet"
+    commands:
+      - tapOn:
+          index: 0
+      - assertVisible: "Image"
+      - assertVisible: "Details"
+      - assertVisible: "Save"
+      - assertVisible: "Share"
+      # Go back
+      - tapOn:
+          id: "back-button"

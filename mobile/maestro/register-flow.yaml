@@ -1,0 +1,36 @@
+# Registration Flow E2E Test
+appId: com.dreamcanvas.app
+---
+
+# Test: Registration Flow
+- launchApp:
+    clearState: true
+
+# Navigate to register
+- tapOn: "Sign Up"
+
+# Should see register screen
+- assertVisible: "Create account"
+
+# Fill registration form
+- tapOn:
+    id: "displayName-input"
+- inputText: "Test User"
+
+- tapOn:
+    id: "email-input"
+- inputText: "newuser@example.com"
+
+- tapOn:
+    id: "password-input"
+- inputText: "password123"
+
+- tapOn:
+    id: "confirmPassword-input"
+- inputText: "password123"
+
+# Submit registration
+- tapOn: "Create Account"
+
+# Should navigate to main app
+- assertVisible: "Create"

@@ -1,0 +1,38 @@
+# Generation Flow E2E Test
+appId: com.dreamcanvas.app
+---
+
+# Prerequisite: User is logged in
+- launchApp
+
+# Should be on Generate tab
+- assertVisible: "Create"
+
+# Enter a prompt
+- tapOn:
+    id: "prompt-input"
+- inputText: "A beautiful sunset over the ocean"
+
+# Select style
+- tapOn: "Anime"
+
+# Select size
+- tapOn: "Landscape"
+
+# Select quality
+- tapOn: "HD"
+
+# Generate image
+- tapOn: "Generate Image"
+
+# Should see progress
+- assertVisible: "Generating"
+
+# Wait for completion (adjust timeout as needed)
+- extendedWaitUntil:
+    visible: "Generation Complete!"
+    timeout: 120000
+
+# Should see result actions
+- assertVisible: "Save"
+- assertVisible: "Share"

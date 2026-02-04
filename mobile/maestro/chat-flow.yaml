@@ -1,0 +1,37 @@
+# Chat Flow E2E Test
+appId: com.dreamcanvas.app
+---
+
+# Prerequisite: User is logged in
+- launchApp
+
+# Navigate to Chat
+- tapOn: "Chat"
+
+# Should see chat screen
+- assertVisible: "AI Assistant"
+- assertVisible: "How can I help?"
+
+# Tap a suggested prompt
+- tapOn: "Help me create a mystical forest scene"
+
+# Should see typing indicator or response
+- extendedWaitUntil:
+    notVisible: "..."
+    timeout: 30000
+
+# Should have assistant response
+- assertVisible:
+    id: "message-bubble-assistant"
+
+# Type custom message
+- tapOn:
+    id: "chat-input"
+- inputText: "Can you help me create an anime character?"
+- tapOn:
+    id: "send-button"
+
+# Wait for response
+- extendedWaitUntil:
+    notVisible: "..."
+    timeout: 30000

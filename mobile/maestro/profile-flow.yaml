@@ -1,0 +1,44 @@
+# Profile Flow E2E Test
+appId: com.dreamcanvas.app
+---
+
+# Prerequisite: User is logged in
+- launchApp
+
+# Navigate to Profile
+- tapOn: "Profile"
+
+# Should see profile
+- assertVisible: "Profile"
+- assertVisible: "test@example.com"
+- assertVisible: "Statistics"
+
+# Navigate to Settings
+- tapOn: "Settings"
+- assertVisible: "Settings"
+- assertVisible: "Appearance"
+- assertVisible: "Theme"
+
+# Change theme
+- tapOn: "Theme"
+- tapOn: "Dark"
+
+# Go back
+- tapOn:
+    id: "back-button"
+
+# Navigate to Edit Profile
+- tapOn: "Edit"
+- assertVisible: "Edit Profile"
+
+# Update display name
+- tapOn:
+    id: "displayName-input"
+- clearText
+- inputText: "Updated Name"
+
+# Save
+- tapOn: "Save"
+
+# Should see success
+- assertVisible: "Profile updated"

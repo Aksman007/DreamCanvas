@@ -15,7 +15,7 @@ import {
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as MediaLibrary from 'expo-media-library';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import {
   Download,
   Share2,
@@ -122,7 +122,7 @@ export function GenerationResult({
         className="relative"
       >
         <Image
-          source={{ uri: imageUrl }}
+          source={{ uri: imageUrl || undefined }}
           style={{
             width: SCREEN_WIDTH - 32,
             height: SCREEN_WIDTH - 32,
