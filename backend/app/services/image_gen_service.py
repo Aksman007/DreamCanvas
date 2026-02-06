@@ -7,7 +7,9 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import httpx
-from openai import OpenAI, APIError as OpenAIAPIError, RateLimitError as OpenAIRateLimitError
+from openai import APIError as OpenAIAPIError
+from openai import OpenAI
+from openai import RateLimitError as OpenAIRateLimitError
 
 from app.config import settings
 
