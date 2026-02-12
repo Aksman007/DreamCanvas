@@ -21,13 +21,24 @@ logger = logging.getLogger(__name__)
 
 def create_engine() -> AsyncEngine:
     """Create and configure the async database engine."""
+    # SQLite doesn't support pool settings
+    is_sqlite = "sqlite" in settings.database_url.lower()
+
+    engine_args = {
+        "echo": settings.db_echo,
+    }
+
+    if not is_sqlite:
+        engine_args.update({
+            "pool_size": settings.db_pool_size,
+            "max_overflow": settings.db_max_overflow,
+            "pool_timeout": settings.db_pool_timeout,
+            "pool_pre_ping": True,
+        })
+
     engine = create_async_engine(
         settings.database_url,
-        echo=settings.db_echo,
-        pool_size=settings.db_pool_size,
-        max_overflow=settings.db_max_overflow,
-        pool_timeout=settings.db_pool_timeout,
-        pool_pre_ping=True,
+        **engine_args,
     )
     logger.info(f"Database engine created: {settings.database_url.split('@')[-1]}")
     return engine

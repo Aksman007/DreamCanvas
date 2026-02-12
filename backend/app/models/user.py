@@ -5,9 +5,10 @@ User Model - Defines the User database model.
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Integer, String, Text
+from sqlalchemy import Boolean, Integer, JSON, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.types import TypeDecorator
 
 from app.db.base import BaseModel
 
@@ -63,9 +64,9 @@ class User(BaseModel):
         nullable=False,
     )
 
-    # Preferences (JSON)
+    # Preferences (JSON) - Uses JSON for SQLite compatibility, JSONB for Postgres
     preferences: Mapped[dict] = mapped_column(
-        JSONB,
+        JSON().with_variant(JSONB, "postgresql"),
         default=dict,
         server_default="{}",
         nullable=False,
