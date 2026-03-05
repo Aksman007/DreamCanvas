@@ -3,6 +3,7 @@ Auth Schemas - Pydantic schemas for authentication endpoints.
 """
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -119,7 +120,7 @@ class UserResponseForAuth(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_user(cls, user) -> "UserResponseForAuth":
+    def from_user(cls, user: Any) -> "UserResponseForAuth":
         """Create from User model."""
         return cls(
             id=str(user.id),
@@ -177,7 +178,7 @@ class UserProfileResponse(BaseModel):
     is_active: bool
     is_verified: bool
     is_superuser: bool
-    preferences: dict
+    preferences: dict[str, Any]
     generation_count: int
     last_generation_at: datetime | None
     created_at: datetime
@@ -230,7 +231,7 @@ class UpdateProfileRequest(BaseModel):
         description="URL to user's avatar image",
         examples=["https://example.com/avatar.jpg"],
     )
-    preferences: dict | None = Field(
+    preferences: dict[str, Any] | None = Field(
         default=None,
         description="User preferences to merge with existing",
         examples=[{"theme": "dark", "default_style": "anime"}],

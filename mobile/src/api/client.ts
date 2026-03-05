@@ -123,7 +123,7 @@ apiClient.interceptors.response.use(
 
       if (isRefreshing) {
         // Wait for token refresh
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           subscribeTokenRefresh((token: string) => {
             originalRequest.headers.Authorization = `Bearer ${token}`;
             resolve(apiClient(originalRequest));

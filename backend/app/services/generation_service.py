@@ -185,7 +185,7 @@ class GenerationService:
 
             # Step 4: Mark complete
             generation.mark_completed(
-                image_url=storage_result.url,
+                image_url=storage_result.url or "",
                 thumbnail_url=storage_result.thumbnail_url,
             )
 
@@ -270,7 +270,7 @@ class GenerationService:
 
         # Get total count
         count_result = await self.db.execute(count_query)
-        total = count_result.scalar()
+        total: int = count_result.scalar() or 0
 
         # Apply pagination and ordering
         offset = (page - 1) * page_size
@@ -327,7 +327,7 @@ class GenerationService:
             .where(Generation.user_id == user.id)
             .where(Generation.created_at >= one_hour_ago)
         )
-        count = result.scalar()
+        count: int = result.scalar() or 0
 
         limit = settings.generation_limit_per_hour
 

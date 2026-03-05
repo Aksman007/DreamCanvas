@@ -2,9 +2,8 @@
 Tests for security module - password hashing and JWT tokens.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import pytest
 from jose import jwt
 
 from app.config import settings
@@ -26,7 +25,7 @@ from app.core.security import (
 class TestPasswordHashing:
     """Test password hashing functionality."""
 
-    def test_hash_password(self):
+    def test_hash_password(self) -> None:
         """Test that password hashing works."""
         password = "SecurePassword123!"
         hashed = hash_password(password)
@@ -36,7 +35,7 @@ class TestPasswordHashing:
         assert hashed != password  # Hash should be different from plain text
         assert len(hashed) == 60  # bcrypt hashes are always 60 chars
 
-    def test_hash_password_different_each_time(self):
+    def test_hash_password_different_each_time(self) -> None:
         """Test that hashing the same password produces different hashes (due to salt)."""
         password = "SamePassword123"
         hash1 = hash_password(password)
@@ -44,14 +43,14 @@ class TestPasswordHashing:
 
         assert hash1 != hash2  # Different salts produce different hashes
 
-    def test_verify_password_success(self):
+    def test_verify_password_success(self) -> None:
         """Test that correct password verification works."""
         password = "CorrectPassword123!"
         hashed = hash_password(password)
 
         assert verify_password(password, hashed) is True
 
-    def test_verify_password_failure(self):
+    def test_verify_password_failure(self) -> None:
         """Test that incorrect password is rejected."""
         password = "CorrectPassword123!"
         wrong_password = "WrongPassword456!"
@@ -59,14 +58,14 @@ class TestPasswordHashing:
 
         assert verify_password(wrong_password, hashed) is False
 
-    def test_verify_password_with_invalid_hash(self):
+    def test_verify_password_with_invalid_hash(self) -> None:
         """Test that verification with invalid hash returns False."""
         password = "SomePassword"
         invalid_hash = "not-a-valid-bcrypt-hash"
 
         assert verify_password(password, invalid_hash) is False
 
-    def test_hash_password_truncates_at_72_bytes(self):
+    def test_hash_password_truncates_at_72_bytes(self) -> None:
         """Test that passwords longer than 72 bytes are handled correctly."""
         # bcrypt has a 72-byte limit
         long_password = "a" * 100
@@ -78,14 +77,14 @@ class TestPasswordHashing:
         # Should verify with the same long password
         assert verify_password(long_password, hashed) is True
 
-    def test_hash_password_with_unicode(self):
+    def test_hash_password_with_unicode(self) -> None:
         """Test password hashing with unicode characters."""
-        password = "Pässwörd123!🔒"
+        password = "Pässwörd123!\U0001f512"
         hashed = hash_password(password)
 
         assert verify_password(password, hashed) is True
 
-    def test_verify_password_empty_string(self):
+    def test_verify_password_empty_string(self) -> None:
         """Test verification with empty password."""
         password = "ValidPassword123"
         hashed = hash_password(password)
@@ -99,7 +98,7 @@ class TestPasswordHashing:
 class TestAccessToken:
     """Test JWT access token creation and verification."""
 
-    def test_create_access_token(self):
+    def test_create_access_token(self) -> None:
         """Test creating an access token."""
         user_id = "user-123"
         token = create_access_token(subject=user_id)
@@ -108,7 +107,7 @@ class TestAccessToken:
         assert isinstance(token, str)
         assert len(token) > 0
 
-    def test_create_access_token_payload(self):
+    def test_create_access_token_payload(self) -> None:
         """Test that access token contains correct payload."""
         user_id = "user-456"
         token = create_access_token(subject=user_id)
@@ -126,7 +125,7 @@ class TestAccessToken:
         assert "iat" in payload
         assert "jti" in payload
 
-    def test_create_access_token_custom_expiry(self):
+    def test_create_access_token_custom_expiry(self) -> None:
         """Test creating access token with custom expiration."""
         user_id = "user-789"
         expires_delta = timedelta(minutes=60)
@@ -139,15 +138,15 @@ class TestAccessToken:
         )
 
         # Calculate expected expiration (approximately)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expected_exp = now + expires_delta
 
-        exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        exp = datetime.fromtimestamp(payload["exp"], tz=UTC)
 
         # Allow 5 second tolerance
         assert abs((exp - expected_exp).total_seconds()) < 5
 
-    def test_create_access_token_additional_claims(self):
+    def test_create_access_token_additional_claims(self) -> None:
         """Test creating access token with additional claims."""
         user_id = "user-abc"
         additional_claims = {
@@ -169,7 +168,7 @@ class TestAccessToken:
         assert payload["email"] == "user@example.com"
         assert payload["role"] == "admin"
 
-    def test_create_access_token_with_integer_subject(self):
+    def test_create_access_token_with_integer_subject(self) -> None:
         """Test creating token with integer subject (should convert to string)."""
         user_id = 12345
         token = create_access_token(subject=user_id)
@@ -189,7 +188,7 @@ class TestAccessToken:
 class TestRefreshToken:
     """Test JWT refresh token creation."""
 
-    def test_create_refresh_token(self):
+    def test_create_refresh_token(self) -> None:
         """Test creating a refresh token."""
         user_id = "user-refresh-123"
         token = create_refresh_token(subject=user_id)
@@ -197,7 +196,7 @@ class TestRefreshToken:
         assert token is not None
         assert isinstance(token, str)
 
-    def test_create_refresh_token_payload(self):
+    def test_create_refresh_token_payload(self) -> None:
         """Test that refresh token has correct payload."""
         user_id = "user-refresh-456"
         token = create_refresh_token(subject=user_id)
@@ -213,7 +212,7 @@ class TestRefreshToken:
         assert "exp" in payload
         assert "iat" in payload
 
-    def test_create_refresh_token_longer_expiry(self):
+    def test_create_refresh_token_longer_expiry(self) -> None:
         """Test that refresh token expires later than access token."""
         user_id = "user-compare"
         access_token = create_access_token(subject=user_id)
@@ -236,7 +235,7 @@ class TestRefreshToken:
         # Refresh token should expire much later
         assert refresh_exp > access_exp
 
-    def test_create_refresh_token_custom_expiry(self):
+    def test_create_refresh_token_custom_expiry(self) -> None:
         """Test creating refresh token with custom expiration."""
         user_id = "user-custom-refresh"
         expires_delta = timedelta(days=14)  # 2 weeks
@@ -248,9 +247,9 @@ class TestRefreshToken:
             algorithms=[settings.algorithm],
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expected_exp = now + expires_delta
-        exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        exp = datetime.fromtimestamp(payload["exp"], tz=UTC)
 
         # Allow 5 second tolerance
         assert abs((exp - expected_exp).total_seconds()) < 5
@@ -262,7 +261,7 @@ class TestRefreshToken:
 class TestTokenPair:
     """Test creating token pairs."""
 
-    def test_create_token_pair(self):
+    def test_create_token_pair(self) -> None:
         """Test creating both access and refresh tokens."""
         user_id = "user-pair-123"
         tokens = create_token_pair(subject=user_id)
@@ -273,7 +272,7 @@ class TestTokenPair:
         assert hasattr(tokens, "token_type")
         assert hasattr(tokens, "expires_in")
 
-    def test_token_pair_structure(self):
+    def test_token_pair_structure(self) -> None:
         """Test that token pair has correct structure."""
         user_id = "user-pair-456"
         tokens = create_token_pair(subject=user_id)
@@ -284,14 +283,14 @@ class TestTokenPair:
         assert isinstance(tokens.expires_in, int)
         assert tokens.expires_in > 0
 
-    def test_token_pair_different_tokens(self):
+    def test_token_pair_different_tokens(self) -> None:
         """Test that access and refresh tokens are different."""
         user_id = "user-pair-789"
         tokens = create_token_pair(subject=user_id)
 
         assert tokens.access_token != tokens.refresh_token
 
-    def test_token_pair_both_valid(self):
+    def test_token_pair_both_valid(self) -> None:
         """Test that both tokens in pair are valid."""
         user_id = "user-pair-abc"
         tokens = create_token_pair(subject=user_id)
@@ -318,7 +317,7 @@ class TestTokenPair:
 class TestTokenDecoding:
     """Test JWT token decoding and validation."""
 
-    def test_decode_token_valid(self):
+    def test_decode_token_valid(self) -> None:
         """Test decoding a valid token."""
         user_id = "user-decode-123"
         token = create_access_token(subject=user_id)
@@ -329,7 +328,7 @@ class TestTokenDecoding:
         assert payload.sub == user_id
         assert payload.type == "access"
 
-    def test_decode_token_invalid(self):
+    def test_decode_token_invalid(self) -> None:
         """Test that decoding invalid token returns None."""
         invalid_token = "not.a.valid.jwt.token"
 
@@ -337,7 +336,7 @@ class TestTokenDecoding:
 
         assert payload is None
 
-    def test_decode_token_expired(self):
+    def test_decode_token_expired(self) -> None:
         """Test that decoding expired token returns None."""
         user_id = "user-expired"
         expires_delta = timedelta(seconds=-10)  # Expired 10 seconds ago
@@ -347,14 +346,14 @@ class TestTokenDecoding:
 
         assert payload is None
 
-    def test_decode_token_wrong_secret(self):
+    def test_decode_token_wrong_secret(self) -> None:
         """Test that token signed with different secret is rejected."""
         user_id = "user-wrong-secret"
 
         # Create token with different secret
         wrong_payload = {
             "sub": user_id,
-            "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+            "exp": datetime.now(UTC) + timedelta(minutes=30),
             "type": "access",
         }
         wrong_token = jwt.encode(
@@ -367,7 +366,7 @@ class TestTokenDecoding:
 
         assert payload is None
 
-    def test_decode_token_malformed(self):
+    def test_decode_token_malformed(self) -> None:
         """Test that malformed token returns None."""
         malformed_tokens = [
             "",
@@ -387,7 +386,7 @@ class TestTokenDecoding:
 class TestTokenVerification:
     """Test token verification with type checking."""
 
-    def test_verify_token_access(self):
+    def test_verify_token_access(self) -> None:
         """Test verifying an access token."""
         user_id = "user-verify-access"
         token = create_access_token(subject=user_id)
@@ -398,7 +397,7 @@ class TestTokenVerification:
         assert payload.sub == user_id
         assert payload.type == "access"
 
-    def test_verify_token_refresh(self):
+    def test_verify_token_refresh(self) -> None:
         """Test verifying a refresh token."""
         user_id = "user-verify-refresh"
         token = create_refresh_token(subject=user_id)
@@ -409,7 +408,7 @@ class TestTokenVerification:
         assert payload.sub == user_id
         assert payload.type == "refresh"
 
-    def test_verify_token_wrong_type(self):
+    def test_verify_token_wrong_type(self) -> None:
         """Test that verifying with wrong type returns None."""
         user_id = "user-wrong-type"
         access_token = create_access_token(subject=user_id)
@@ -419,7 +418,7 @@ class TestTokenVerification:
 
         assert payload is None
 
-    def test_verify_token_refresh_as_access(self):
+    def test_verify_token_refresh_as_access(self) -> None:
         """Test that refresh token can't be used as access token."""
         user_id = "user-refresh-as-access"
         refresh_token = create_refresh_token(subject=user_id)
@@ -429,7 +428,7 @@ class TestTokenVerification:
 
         assert payload is None
 
-    def test_verify_token_expired(self):
+    def test_verify_token_expired(self) -> None:
         """Test that expired token fails verification."""
         user_id = "user-verify-expired"
         expires_delta = timedelta(seconds=-10)
@@ -439,7 +438,7 @@ class TestTokenVerification:
 
         assert payload is None
 
-    def test_verify_token_invalid(self):
+    def test_verify_token_invalid(self) -> None:
         """Test that invalid token fails verification."""
         invalid_token = "invalid.token.here"
 
@@ -454,7 +453,7 @@ class TestTokenVerification:
 class TestUtilityFunctions:
     """Test utility functions for API keys and tokens."""
 
-    def test_generate_api_key(self):
+    def test_generate_api_key(self) -> None:
         """Test generating an API key."""
         api_key = generate_api_key()
 
@@ -463,20 +462,20 @@ class TestUtilityFunctions:
         assert api_key.startswith("dc_")
         assert len(api_key) > 10
 
-    def test_generate_api_key_custom_prefix(self):
+    def test_generate_api_key_custom_prefix(self) -> None:
         """Test generating API key with custom prefix."""
         api_key = generate_api_key(prefix="test")
 
         assert api_key.startswith("test_")
 
-    def test_generate_api_key_unique(self):
+    def test_generate_api_key_unique(self) -> None:
         """Test that generated API keys are unique."""
         key1 = generate_api_key()
         key2 = generate_api_key()
 
         assert key1 != key2
 
-    def test_generate_verification_token(self):
+    def test_generate_verification_token(self) -> None:
         """Test generating a verification token."""
         token = generate_verification_token()
 
@@ -484,14 +483,14 @@ class TestUtilityFunctions:
         assert isinstance(token, str)
         assert len(token) > 20  # URL-safe tokens are reasonably long
 
-    def test_generate_verification_token_unique(self):
+    def test_generate_verification_token_unique(self) -> None:
         """Test that verification tokens are unique."""
         token1 = generate_verification_token()
         token2 = generate_verification_token()
 
         assert token1 != token2
 
-    def test_generate_verification_token_url_safe(self):
+    def test_generate_verification_token_url_safe(self) -> None:
         """Test that verification token is URL-safe."""
         token = generate_verification_token()
 

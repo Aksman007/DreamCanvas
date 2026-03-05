@@ -58,6 +58,7 @@ export function Toast({
         return () => clearTimeout(timer);
       }
     }
+    return undefined;
   }, [visible]);
 
   const handleDismiss = () => {
@@ -77,7 +78,7 @@ export function Toast({
 
   if (!visible) return null;
 
-  const { icon: Icon, color, bg } = ICONS[type];
+  const { icon: Icon, bg } = ICONS[type];
 
   return (
     <Animated.View

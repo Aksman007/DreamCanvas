@@ -10,7 +10,6 @@ from fastapi import status
 
 from app.models.generation import GenerationStatus
 
-
 # ==================== List Generations Tests ====================
 
 
@@ -18,7 +17,7 @@ class TestListGenerations:
     """Test GET /api/v1/gallery endpoint."""
 
     @pytest.mark.asyncio
-    async def test_list_generations_success(self, async_client, auth_headers, db_session, test_user):
+    async def test_list_generations_success(self, async_client, auth_headers, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test listing user's generations."""
         # Create some generations
         from app.models.generation import Generation, ImageProvider
@@ -51,7 +50,7 @@ class TestListGenerations:
         assert data["total"] == 3
 
     @pytest.mark.asyncio
-    async def test_list_generations_empty(self, async_client, auth_headers):
+    async def test_list_generations_empty(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test listing when user has no generations."""
         response = await async_client.get("/api/v1/gallery", headers=auth_headers)
 
@@ -62,7 +61,7 @@ class TestListGenerations:
         assert data["total"] == 0
 
     @pytest.mark.asyncio
-    async def test_list_generations_pagination(self, async_client, auth_headers, db_session, test_user):
+    async def test_list_generations_pagination(self, async_client, auth_headers, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test pagination of generations."""
         # Create 25 generations
         from app.models.generation import Generation, ImageProvider
@@ -96,9 +95,9 @@ class TestListGenerations:
         assert data2["page"] == 2
 
     @pytest.mark.asyncio
-    async def test_list_generations_custom_page_size(
+    async def test_list_generations_custom_page_size(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, db_session, test_user
-    ):
+    ) -> None:
         """Test custom page size."""
         # Create 15 generations
         from app.models.generation import Generation, ImageProvider
@@ -125,7 +124,7 @@ class TestListGenerations:
         assert data["pages"] == 3
 
     @pytest.mark.asyncio
-    async def test_list_generations_max_page_size(self, async_client, auth_headers):
+    async def test_list_generations_max_page_size(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test that page size is limited to maximum."""
         response = await async_client.get("/api/v1/gallery?page_size=200", headers=auth_headers)
 
@@ -136,9 +135,9 @@ class TestListGenerations:
         assert data["page_size"] == 100
 
     @pytest.mark.asyncio
-    async def test_list_generations_filter_by_status(
+    async def test_list_generations_filter_by_status(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, db_session, test_user
-    ):
+    ) -> None:
         """Test filtering by status."""
         # Create generations with different statuses
         from app.models.generation import Generation, ImageProvider
@@ -175,9 +174,9 @@ class TestListGenerations:
         assert all(item["status"] == GenerationStatus.COMPLETED.value for item in data["items"])
 
     @pytest.mark.asyncio
-    async def test_list_generations_filter_pending(
+    async def test_list_generations_filter_pending(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, db_session, test_user
-    ):
+    ) -> None:
         """Test filtering for pending generations."""
         from app.models.generation import Generation, ImageProvider
 
@@ -212,11 +211,12 @@ class TestListGenerations:
         assert data["items"][0]["status"] == GenerationStatus.PENDING.value
 
     @pytest.mark.asyncio
-    async def test_list_generations_ordering(
+    async def test_list_generations_ordering(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, db_session, test_user
-    ):
+    ) -> None:
         """Test that generations are ordered by created_at desc (newest first)."""
         import asyncio
+
         from app.models.generation import Generation, ImageProvider
 
         # Create generations with small delay
@@ -244,16 +244,16 @@ class TestListGenerations:
         assert data["items"][2]["original_prompt"] == "Prompt 0"
 
     @pytest.mark.asyncio
-    async def test_list_generations_no_auth(self, async_client):
+    async def test_list_generations_no_auth(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test listing generations without authentication."""
         response = await async_client.get("/api/v1/gallery")
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_list_generations_only_own(
+    async def test_list_generations_only_own(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, auth_headers_user_2, db_session, test_user, test_user_2
-    ):
+    ) -> None:
         """Test that users only see their own generations."""
         from app.models.generation import Generation, ImageProvider
 
@@ -291,7 +291,7 @@ class TestListGenerations:
         assert data2["items"][0]["original_prompt"] == "User 2's generation"
 
     @pytest.mark.asyncio
-    async def test_list_generations_invalid_page(self, async_client, auth_headers):
+    async def test_list_generations_invalid_page(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test with invalid page number."""
         response = await async_client.get("/api/v1/gallery?page=0", headers=auth_headers)
 
@@ -301,7 +301,7 @@ class TestListGenerations:
         assert data["page"] == 1
 
     @pytest.mark.asyncio
-    async def test_list_generations_invalid_page_size(self, async_client, auth_headers):
+    async def test_list_generations_invalid_page_size(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test with invalid page size."""
         response = await async_client.get("/api/v1/gallery?page_size=0", headers=auth_headers)
 
@@ -311,7 +311,7 @@ class TestListGenerations:
         assert data["page_size"] >= 1
 
     @pytest.mark.asyncio
-    async def test_list_generations_invalid_status(self, async_client, auth_headers):
+    async def test_list_generations_invalid_status(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test filtering with invalid status."""
         response = await async_client.get("/api/v1/gallery?status=invalid_status", headers=auth_headers)
 
@@ -319,9 +319,9 @@ class TestListGenerations:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_list_generations_combined_filters(
+    async def test_list_generations_combined_filters(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, db_session, test_user
-    ):
+    ) -> None:
         """Test combining pagination and filtering."""
         from app.models.generation import Generation, ImageProvider
 
@@ -360,9 +360,9 @@ class TestListGenerations:
         assert data["pages"] == 2
 
     @pytest.mark.asyncio
-    async def test_list_generations_response_structure(
+    async def test_list_generations_response_structure(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, db_session, test_user
-    ):
+    ) -> None:
         """Test that response includes all expected fields."""
         from app.models.generation import Generation, ImageProvider
 

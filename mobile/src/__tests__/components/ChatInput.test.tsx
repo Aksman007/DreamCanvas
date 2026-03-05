@@ -22,19 +22,19 @@ describe('ChatInput', () => {
   });
 
   it('should call onSend when send button pressed with text', () => {
-    const { getByPlaceholderText, getByTestId } = render(
+    const { getByPlaceholderText } = render(
       <ChatInput onSend={mockOnSend} testID="chat-input" />
     );
-    
+
     const input = getByPlaceholderText('Ask me anything about image prompts...');
     fireEvent.changeText(input, 'Hello');
-    
+
     // Find and press send button
     // Note: Implementation may vary based on actual component structure
   });
 
   it('should not call onSend when input is empty', () => {
-    const { getByTestId } = render(
+    render(
       <ChatInput onSend={mockOnSend} testID="chat-input" />
     );
     

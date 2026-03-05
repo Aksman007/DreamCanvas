@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
-import { Image as ImageIcon, Clock, Sparkles, TrendingUp } from 'lucide-react-native';
+import { Image as ImageIcon, Clock, Sparkles } from 'lucide-react-native';
 
 interface StatsCardProps {
   generationCount: number;

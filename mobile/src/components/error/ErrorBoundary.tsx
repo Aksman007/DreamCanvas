@@ -4,7 +4,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react-native';
+import { AlertTriangle, RefreshCw } from 'lucide-react-native';
 
 interface Props {
   children: ReactNode;

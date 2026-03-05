@@ -8,7 +8,8 @@ import logging
 import time
 import uuid
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -41,7 +42,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self,
         request: Request,
-        call_next: Callable[[Request], Response],
+        call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
         # Skip logging for certain paths
         if request.url.path in self.SKIP_PATHS:
@@ -140,7 +141,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self,
         request: Request,
-        call_next: Callable[[Request], Response],
+        call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
         # Skip rate limiting for excluded paths
         if request.url.path in self.EXCLUDED_PATHS:
@@ -226,7 +227,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if client_id in self.requests:
             del self.requests[client_id]
 
-    def get_client_stats(self, client_id: str) -> dict:
+    def get_client_stats(self, client_id: str) -> dict[str, Any]:
         """Get rate limit stats for a client (for debugging)."""
         now = time.time()
         window_start = now - 60
@@ -261,7 +262,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self,
         request: Request,
-        call_next: Callable[[Request], Response],
+        call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
         response = await call_next(request)
 

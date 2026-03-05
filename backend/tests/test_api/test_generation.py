@@ -20,9 +20,9 @@ class TestCreateGeneration:
     """Test POST /api/v1/generate endpoint."""
 
     @pytest.mark.asyncio
-    async def test_create_generation_sync_success(
+    async def test_create_generation_sync_success(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, generation_data, mock_claude_api, mock_dalle_api, mock_storage
-    ):
+    ) -> None:
         """Test creating a generation in sync mode."""
         response = await async_client.post(
             "/api/v1/generate?sync=true",
@@ -40,9 +40,9 @@ class TestCreateGeneration:
         assert data["original_prompt"] == generation_data["prompt"]
 
     @pytest.mark.asyncio
-    async def test_create_generation_async_success(
+    async def test_create_generation_async_success(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers, generation_data
-    ):
+    ) -> None:
         """Test creating a generation in async mode (default)."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -58,7 +58,7 @@ class TestCreateGeneration:
         assert "id" in data
 
     @pytest.mark.asyncio
-    async def test_create_generation_minimal_request(self, async_client, auth_headers):
+    async def test_create_generation_minimal_request(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with minimal required fields."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -71,7 +71,7 @@ class TestCreateGeneration:
         assert data["original_prompt"] == "A beautiful sunset"
 
     @pytest.mark.asyncio
-    async def test_create_generation_custom_size(self, async_client, auth_headers):
+    async def test_create_generation_custom_size(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with custom size."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -84,7 +84,7 @@ class TestCreateGeneration:
         assert data["size"] == "1792x1024"
 
     @pytest.mark.asyncio
-    async def test_create_generation_custom_quality(self, async_client, auth_headers):
+    async def test_create_generation_custom_quality(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with HD quality."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -97,7 +97,7 @@ class TestCreateGeneration:
         assert data["quality"] == "hd"
 
     @pytest.mark.asyncio
-    async def test_create_generation_with_style(self, async_client, auth_headers):
+    async def test_create_generation_with_style(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with style preset."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -110,7 +110,7 @@ class TestCreateGeneration:
         assert data["style"] == "vivid"
 
     @pytest.mark.asyncio
-    async def test_create_generation_with_negative_prompt(self, async_client, auth_headers):
+    async def test_create_generation_with_negative_prompt(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with negative prompt."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -126,7 +126,7 @@ class TestCreateGeneration:
         assert data["negative_prompt"] == "people, cars"
 
     @pytest.mark.asyncio
-    async def test_create_generation_enhance_disabled(self, async_client, auth_headers):
+    async def test_create_generation_enhance_disabled(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with prompt enhancement disabled."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -137,7 +137,7 @@ class TestCreateGeneration:
         assert response.status_code == status.HTTP_202_ACCEPTED
 
     @pytest.mark.asyncio
-    async def test_create_generation_no_auth(self, async_client):
+    async def test_create_generation_no_auth(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation without authentication."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -147,7 +147,7 @@ class TestCreateGeneration:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_create_generation_empty_prompt(self, async_client, auth_headers):
+    async def test_create_generation_empty_prompt(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with empty prompt."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -158,7 +158,7 @@ class TestCreateGeneration:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_create_generation_missing_prompt(self, async_client, auth_headers):
+    async def test_create_generation_missing_prompt(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation without prompt."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -169,7 +169,7 @@ class TestCreateGeneration:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_create_generation_prompt_too_long(self, async_client, auth_headers):
+    async def test_create_generation_prompt_too_long(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with excessively long prompt."""
         long_prompt = "x" * 4001  # Max is 4000
 
@@ -182,7 +182,7 @@ class TestCreateGeneration:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_create_generation_invalid_size(self, async_client, auth_headers):
+    async def test_create_generation_invalid_size(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with invalid size."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -193,7 +193,7 @@ class TestCreateGeneration:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_create_generation_invalid_quality(self, async_client, auth_headers):
+    async def test_create_generation_invalid_quality(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test creating generation with invalid quality."""
         response = await async_client.post(
             "/api/v1/generate",
@@ -211,7 +211,7 @@ class TestGetGeneration:
     """Test GET /api/v1/generate/{id} endpoint."""
 
     @pytest.mark.asyncio
-    async def test_get_generation_success(self, async_client, auth_headers, db_session, test_user):
+    async def test_get_generation_success(self, async_client, auth_headers, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test getting a generation by ID."""
         # Create a generation
         from app.models.generation import Generation, GenerationStatus, ImageProvider
@@ -245,7 +245,7 @@ class TestGetGeneration:
         assert data["image_url"] == "https://example.com/image.png"
 
     @pytest.mark.asyncio
-    async def test_get_generation_not_found(self, async_client, auth_headers):
+    async def test_get_generation_not_found(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test getting non-existent generation."""
         import uuid
 
@@ -258,9 +258,9 @@ class TestGetGeneration:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.asyncio
-    async def test_get_generation_wrong_user(
+    async def test_get_generation_wrong_user(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers_user_2, db_session, test_user
-    ):
+    ) -> None:
         """Test getting another user's generation."""
         # Create generation for test_user
         from app.models.generation import Generation, GenerationStatus, ImageProvider
@@ -285,7 +285,7 @@ class TestGetGeneration:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.asyncio
-    async def test_get_generation_no_auth(self, async_client, db_session, test_user):
+    async def test_get_generation_no_auth(self, async_client, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test getting generation without authentication."""
         from app.models.generation import Generation, GenerationStatus, ImageProvider
 
@@ -305,7 +305,7 @@ class TestGetGeneration:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_get_generation_invalid_uuid(self, async_client, auth_headers):
+    async def test_get_generation_invalid_uuid(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test getting generation with invalid UUID."""
         response = await async_client.get(
             "/api/v1/generate/not-a-uuid",
@@ -322,7 +322,7 @@ class TestGetGenerationStatus:
     """Test GET /api/v1/generate/{id}/status endpoint."""
 
     @pytest.mark.asyncio
-    async def test_get_status_completed(self, async_client, auth_headers, db_session, test_user):
+    async def test_get_status_completed(self, async_client, auth_headers, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test getting status of completed generation."""
         from app.models.generation import Generation, GenerationStatus, ImageProvider
 
@@ -353,7 +353,7 @@ class TestGetGenerationStatus:
         assert data["thumbnail_url"] == "https://example.com/thumb.png"
 
     @pytest.mark.asyncio
-    async def test_get_status_pending(self, async_client, auth_headers, db_session, test_user):
+    async def test_get_status_pending(self, async_client, auth_headers, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test getting status of pending generation."""
         from app.models.generation import Generation, GenerationStatus, ImageProvider
 
@@ -381,7 +381,7 @@ class TestGetGenerationStatus:
         assert "image_url" not in data
 
     @pytest.mark.asyncio
-    async def test_get_status_failed(self, async_client, auth_headers, db_session, test_user):
+    async def test_get_status_failed(self, async_client, auth_headers, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test getting status of failed generation."""
         from app.models.generation import Generation, GenerationStatus, ImageProvider
 
@@ -409,7 +409,7 @@ class TestGetGenerationStatus:
         assert data["error"] == "Something went wrong"
 
     @pytest.mark.asyncio
-    async def test_get_status_not_found(self, async_client, auth_headers):
+    async def test_get_status_not_found(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test getting status of non-existent generation."""
         import uuid
 
@@ -429,7 +429,7 @@ class TestDeleteGeneration:
     """Test DELETE /api/v1/generate/{id} endpoint."""
 
     @pytest.mark.asyncio
-    async def test_delete_generation_success(self, async_client, auth_headers, db_session, test_user):
+    async def test_delete_generation_success(self, async_client, auth_headers, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test deleting own generation."""
         from app.models.generation import Generation, GenerationStatus, ImageProvider
 
@@ -464,7 +464,7 @@ class TestDeleteGeneration:
         assert result.scalar_one_or_none() is None
 
     @pytest.mark.asyncio
-    async def test_delete_generation_not_found(self, async_client, auth_headers):
+    async def test_delete_generation_not_found(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test deleting non-existent generation."""
         import uuid
 
@@ -477,9 +477,9 @@ class TestDeleteGeneration:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.asyncio
-    async def test_delete_generation_wrong_user(
+    async def test_delete_generation_wrong_user(  # type: ignore[no-untyped-def]
         self, async_client, auth_headers_user_2, db_session, test_user
-    ):
+    ) -> None:
         """Test deleting another user's generation."""
         from app.models.generation import Generation, GenerationStatus, ImageProvider
 
@@ -511,7 +511,7 @@ class TestDeleteGeneration:
         assert result.scalar_one_or_none() is not None
 
     @pytest.mark.asyncio
-    async def test_delete_generation_no_auth(self, async_client, db_session, test_user):
+    async def test_delete_generation_no_auth(self, async_client, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test deleting generation without authentication."""
         from app.models.generation import Generation, GenerationStatus, ImageProvider
 

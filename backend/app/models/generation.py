@@ -4,11 +4,13 @@ Generation Model - Stores image generation history and metadata.
 
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum as SQLEnum, ForeignKey, Integer, JSON, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -114,7 +116,7 @@ class Generation(BaseModel):
     )
 
     # ==================== Metadata (RENAMED) ====================
-    generation_metadata: Mapped[dict] = mapped_column(
+    generation_metadata: Mapped[dict[str, Any]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"),
         default=dict,
         server_default="{}",

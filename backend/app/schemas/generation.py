@@ -3,12 +3,12 @@ Generation Schemas - Pydantic schemas for image generation.
 """
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.generation import GenerationStatus, ImageProvider
-
 
 # ============================================================================
 # Request Schemas
@@ -100,7 +100,7 @@ class ChatRequest(BaseModel):
         examples=["Help me create a prompt for a fantasy landscape"],
     )
 
-    conversation_history: list[dict] | None = Field(
+    conversation_history: list[dict[str, Any]] | None = Field(
         default=None,
         description="Previous messages in the conversation",
     )
@@ -173,7 +173,7 @@ class GenerationResponse(BaseModel):
     )
 
     @classmethod
-    def from_generation(cls, generation) -> "GenerationResponse":
+    def from_generation(cls, generation: Any) -> "GenerationResponse":
         """Create from Generation model with computed fields."""
         return cls(
             id=generation.id,

@@ -29,7 +29,6 @@ import {
   useGenerationError,
 } from '../../../src/stores';
 import { useAuthStore } from '../../../src/stores/authStore';
-import { APP_CONFIG } from '../../../src/constants/config';
 
 export default function GenerateScreen() {
   const user = useAuthStore((state) => state.user);

@@ -9,6 +9,7 @@ Endpoints:
 """
 
 import logging
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -178,7 +179,7 @@ async def get_generation_status(
     generation_id: UUID,
     current_user: CurrentUser,
     db: DBSession,
-) -> dict:
+) -> dict[str, Any]:
     """
     Get just the status of a generation.
 
@@ -204,19 +205,19 @@ async def get_generation_status(
         )
 
     # Build status response
-    response = {
+    result: dict[str, Any] = {
         "generation_id": str(generation.id),
         "status": generation.status.value,
         "message": _get_status_message(generation.status),
     }
 
     if generation.status == GenerationStatus.COMPLETED:
-        response["image_url"] = generation.image_url
-        response["thumbnail_url"] = generation.thumbnail_url
+        result["image_url"] = generation.image_url
+        result["thumbnail_url"] = generation.thumbnail_url
     elif generation.status == GenerationStatus.FAILED:
-        response["error"] = generation.error_message
+        result["error"] = generation.error_message
 
-    return response
+    return result
 
 
 @router.delete(
@@ -276,7 +277,7 @@ async def delete_generation(
     return SuccessResponse(message="Generation deleted successfully")
 
 
-def _get_status_message(status: GenerationStatus) -> str:
+def _get_status_message(gen_status: GenerationStatus) -> str:
     """Get human-readable message for status."""
     messages = {
         GenerationStatus.PENDING: "Waiting to start...",
@@ -287,4 +288,4 @@ def _get_status_message(status: GenerationStatus) -> str:
         GenerationStatus.COMPLETED: "Generation complete!",
         GenerationStatus.FAILED: "Generation failed",
     }
-    return messages.get(status, "Unknown status")
+    return messages.get(gen_status, "Unknown status")

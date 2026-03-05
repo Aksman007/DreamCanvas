@@ -5,15 +5,14 @@ Handles password hashing and JWT token operations.
 """
 
 import secrets
-import bcrypt
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import bcrypt
 from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from app.config import settings
-
 
 # ============================================================================
 # PASSWORD HASHING (using bcrypt directly)
@@ -96,7 +95,7 @@ def create_access_token(
     additional_claims: dict[str, Any] | None = None,
 ) -> str:
     """Create a JWT access token."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if expires_delta:
         expire = now + expires_delta
@@ -114,11 +113,12 @@ def create_access_token(
     if additional_claims:
         to_encode.update(additional_claims)
 
-    return jwt.encode(
+    encoded: str = jwt.encode(
         to_encode,
         settings.secret_key,
         algorithm=settings.algorithm,
     )
+    return encoded
 
 
 def create_refresh_token(
@@ -126,7 +126,7 @@ def create_refresh_token(
     expires_delta: timedelta | None = None,
 ) -> str:
     """Create a JWT refresh token."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if expires_delta:
         expire = now + expires_delta
@@ -141,11 +141,12 @@ def create_refresh_token(
         "jti": secrets.token_urlsafe(16),
     }
 
-    return jwt.encode(
+    encoded: str = jwt.encode(
         to_encode,
         settings.secret_key,
         algorithm=settings.algorithm,
     )
+    return encoded
 
 
 def create_token_pair(subject: str | int) -> TokenPair:
@@ -174,8 +175,8 @@ def decode_token(token: str) -> TokenPayload | None:
 
         return TokenPayload(
             sub=payload.get("sub", ""),
-            exp=datetime.fromtimestamp(payload.get("exp", 0), tz=timezone.utc),
-            iat=datetime.fromtimestamp(payload.get("iat", 0), tz=timezone.utc),
+            exp=datetime.fromtimestamp(payload.get("exp", 0), tz=UTC),
+            iat=datetime.fromtimestamp(payload.get("iat", 0), tz=UTC),
             type=payload.get("type", ""),
             jti=payload.get("jti"),
         )

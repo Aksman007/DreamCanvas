@@ -39,7 +39,7 @@ describe('useSettingsStore', () => {
 
   describe('setTheme', () => {
     it('should update theme to dark', () => {
-      const { setState, getState } = useSettingsStore;
+      const { getState } = useSettingsStore;
       
       act(() => {
         getState().setTheme('dark');

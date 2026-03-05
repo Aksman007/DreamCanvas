@@ -3,7 +3,7 @@ Tests for dependencies module - authentication and dependency injection.
 """
 
 from datetime import timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -28,7 +28,7 @@ class TestGetTokenFromHeader:
     """Test extracting JWT token from Authorization header."""
 
     @pytest.mark.asyncio
-    async def test_get_token_from_header_success(self):
+    async def test_get_token_from_header_success(self) -> None:
         """Test extracting token from valid credentials."""
         # Mock HTTPAuthorizationCredentials
         mock_credentials = MagicMock()
@@ -39,7 +39,7 @@ class TestGetTokenFromHeader:
         assert token == "valid-jwt-token-here"
 
     @pytest.mark.asyncio
-    async def test_get_token_from_header_no_credentials(self):
+    async def test_get_token_from_header_no_credentials(self) -> None:
         """Test that missing credentials raises 401."""
         with pytest.raises(HTTPException) as exc_info:
             await get_token_from_header(None)
@@ -56,7 +56,7 @@ class TestGetCurrentToken:
     """Test JWT token validation."""
 
     @pytest.mark.asyncio
-    async def test_get_current_token_valid(self):
+    async def test_get_current_token_valid(self) -> None:
         """Test validating a valid access token."""
         user_id = str(uuid4())
         token = create_access_token(subject=user_id)
@@ -68,7 +68,7 @@ class TestGetCurrentToken:
         assert payload.type == "access"
 
     @pytest.mark.asyncio
-    async def test_get_current_token_invalid(self):
+    async def test_get_current_token_invalid(self) -> None:
         """Test that invalid token raises 401."""
         invalid_token = "not-a-valid-jwt-token"
 
@@ -79,7 +79,7 @@ class TestGetCurrentToken:
         assert exc_info.value.detail == "Invalid or expired token"
 
     @pytest.mark.asyncio
-    async def test_get_current_token_expired(self):
+    async def test_get_current_token_expired(self) -> None:
         """Test that expired token raises 401."""
         user_id = str(uuid4())
         expires_delta = timedelta(seconds=-10)  # Expired
@@ -92,7 +92,7 @@ class TestGetCurrentToken:
         assert exc_info.value.detail == "Invalid or expired token"
 
     @pytest.mark.asyncio
-    async def test_get_current_token_wrong_type(self):
+    async def test_get_current_token_wrong_type(self) -> None:
         """Test that refresh token is rejected as access token."""
         user_id = str(uuid4())
         refresh_token = create_refresh_token(subject=user_id)
@@ -110,7 +110,7 @@ class TestGetCurrentUser:
     """Test getting current authenticated user."""
 
     @pytest.mark.asyncio
-    async def test_get_current_user_success(self, db_session, test_user):
+    async def test_get_current_user_success(self, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test getting user with valid token."""
         # Create token payload mock
         mock_token = MagicMock()
@@ -123,7 +123,7 @@ class TestGetCurrentUser:
         assert user.email == test_user.email
 
     @pytest.mark.asyncio
-    async def test_get_current_user_not_found(self, db_session):
+    async def test_get_current_user_not_found(self, db_session) -> None:  # type: ignore[no-untyped-def]
         """Test that non-existent user raises 401."""
         mock_token = MagicMock()
         mock_token.sub = str(uuid4())  # Random UUID that doesn't exist
@@ -135,7 +135,7 @@ class TestGetCurrentUser:
         assert exc_info.value.detail == "User not found"
 
     @pytest.mark.asyncio
-    async def test_get_current_user_inactive(self, db_session, inactive_user):
+    async def test_get_current_user_inactive(self, db_session, inactive_user) -> None:  # type: ignore[no-untyped-def]
         """Test that inactive user raises 403."""
         mock_token = MagicMock()
         mock_token.sub = str(inactive_user.id)
@@ -147,7 +147,7 @@ class TestGetCurrentUser:
         assert exc_info.value.detail == "User account is deactivated"
 
     @pytest.mark.asyncio
-    async def test_get_current_user_invalid_uuid(self, db_session):
+    async def test_get_current_user_invalid_uuid(self, db_session) -> None:  # type: ignore[no-untyped-def]
         """Test that invalid UUID format raises 401."""
         mock_token = MagicMock()
         mock_token.sub = "not-a-valid-uuid"
@@ -166,7 +166,7 @@ class TestGetCurrentSuperuser:
     """Test getting current superuser."""
 
     @pytest.mark.asyncio
-    async def test_get_current_superuser_success(self, db_session):
+    async def test_get_current_superuser_success(self, db_session) -> None:  # type: ignore[no-untyped-def]
         """Test that superuser can access superuser-only endpoint."""
         # Create superuser
         superuser = User(
@@ -186,7 +186,7 @@ class TestGetCurrentSuperuser:
         assert user.is_superuser is True
 
     @pytest.mark.asyncio
-    async def test_get_current_superuser_not_superuser(self, test_user):
+    async def test_get_current_superuser_not_superuser(self, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test that regular user is rejected from superuser endpoint."""
         with pytest.raises(HTTPException) as exc_info:
             await get_current_active_superuser(current_user=test_user)
@@ -202,7 +202,7 @@ class TestGetOptionalCurrentUser:
     """Test optional authentication (user or None)."""
 
     @pytest.mark.asyncio
-    async def test_get_optional_user_with_valid_token(self, db_session, test_user):
+    async def test_get_optional_user_with_valid_token(self, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test getting user with valid credentials."""
         # Mock credentials
         mock_credentials = MagicMock()
@@ -218,7 +218,7 @@ class TestGetOptionalCurrentUser:
         assert user.id == test_user.id
 
     @pytest.mark.asyncio
-    async def test_get_optional_user_without_credentials(self, db_session):
+    async def test_get_optional_user_without_credentials(self, db_session) -> None:  # type: ignore[no-untyped-def]
         """Test that None is returned when no credentials provided."""
         user = await get_optional_current_user(
             credentials=None,
@@ -228,7 +228,7 @@ class TestGetOptionalCurrentUser:
         assert user is None
 
     @pytest.mark.asyncio
-    async def test_get_optional_user_with_invalid_token(self, db_session):
+    async def test_get_optional_user_with_invalid_token(self, db_session) -> None:  # type: ignore[no-untyped-def]
         """Test that None is returned for invalid token."""
         mock_credentials = MagicMock()
         mock_credentials.credentials = "invalid-token"
@@ -241,7 +241,7 @@ class TestGetOptionalCurrentUser:
         assert user is None
 
     @pytest.mark.asyncio
-    async def test_get_optional_user_with_expired_token(self, db_session, test_user):
+    async def test_get_optional_user_with_expired_token(self, db_session, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test that None is returned for expired token."""
         mock_credentials = MagicMock()
         expires_delta = timedelta(seconds=-10)
@@ -259,7 +259,7 @@ class TestGetOptionalCurrentUser:
         assert user is None
 
     @pytest.mark.asyncio
-    async def test_get_optional_user_with_nonexistent_user(self, db_session):
+    async def test_get_optional_user_with_nonexistent_user(self, db_session) -> None:  # type: ignore[no-untyped-def]
         """Test that None is returned when user doesn't exist."""
         mock_credentials = MagicMock()
         random_id = str(uuid4())
@@ -274,7 +274,7 @@ class TestGetOptionalCurrentUser:
         assert user is None
 
     @pytest.mark.asyncio
-    async def test_get_optional_user_with_inactive_user(self, db_session, inactive_user):
+    async def test_get_optional_user_with_inactive_user(self, db_session, inactive_user) -> None:  # type: ignore[no-untyped-def]
         """Test that None is returned for inactive user."""
         mock_credentials = MagicMock()
         token = create_access_token(subject=str(inactive_user.id))
@@ -288,7 +288,7 @@ class TestGetOptionalCurrentUser:
         assert user is None
 
     @pytest.mark.asyncio
-    async def test_get_optional_user_with_invalid_uuid(self, db_session):
+    async def test_get_optional_user_with_invalid_uuid(self, db_session) -> None:  # type: ignore[no-untyped-def]
         """Test that None is returned for invalid UUID format."""
         mock_credentials = MagicMock()
         token = create_access_token(subject="not-a-uuid")
@@ -309,7 +309,7 @@ class TestPagination:
     """Test pagination parameters."""
 
     @pytest.mark.asyncio
-    async def test_get_pagination_defaults(self):
+    async def test_get_pagination_defaults(self) -> None:
         """Test pagination with default values."""
         pagination = await get_pagination()
 
@@ -319,7 +319,7 @@ class TestPagination:
         assert pagination.limit == 20
 
     @pytest.mark.asyncio
-    async def test_get_pagination_custom_values(self):
+    async def test_get_pagination_custom_values(self) -> None:
         """Test pagination with custom values."""
         pagination = await get_pagination(page=3, page_size=50)
 
@@ -329,7 +329,7 @@ class TestPagination:
         assert pagination.limit == 50
 
     @pytest.mark.asyncio
-    async def test_pagination_params_calculation(self):
+    async def test_pagination_params_calculation(self) -> None:
         """Test PaginationParams offset calculation."""
         params = PaginationParams(page=1, page_size=10)
         assert params.offset == 0
@@ -341,7 +341,7 @@ class TestPagination:
         assert params.offset == 100
 
     @pytest.mark.asyncio
-    async def test_pagination_params_min_page(self):
+    async def test_pagination_params_min_page(self) -> None:
         """Test that page can't be less than 1."""
         params = PaginationParams(page=0, page_size=10)
         assert params.page == 1
@@ -350,7 +350,7 @@ class TestPagination:
         assert params.page == 1
 
     @pytest.mark.asyncio
-    async def test_pagination_params_min_page_size(self):
+    async def test_pagination_params_min_page_size(self) -> None:
         """Test that page_size can't be less than 1."""
         params = PaginationParams(page=1, page_size=0)
         assert params.page_size == 1
@@ -359,7 +359,7 @@ class TestPagination:
         assert params.page_size == 1
 
     @pytest.mark.asyncio
-    async def test_pagination_params_max_page_size(self):
+    async def test_pagination_params_max_page_size(self) -> None:
         """Test that page_size is capped at max."""
         params = PaginationParams(page=1, page_size=200, max_page_size=100)
         assert params.page_size == 100
@@ -368,7 +368,7 @@ class TestPagination:
         assert params.page_size == 50
 
     @pytest.mark.asyncio
-    async def test_pagination_params_limit_property(self):
+    async def test_pagination_params_limit_property(self) -> None:
         """Test that limit property returns page_size."""
         params = PaginationParams(page=1, page_size=30)
         assert params.limit == params.page_size

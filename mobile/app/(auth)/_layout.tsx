@@ -7,10 +7,10 @@ import { Redirect } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
 
 export default function AuthLayout() {
-  const { isAuthenticated } = useAuthStore();
-  
+  const user = useAuthStore((state) => state.user);
+
   // If authenticated, redirect to main app
-  if (isAuthenticated) {
+  if (user) {
     return <Redirect href="/(tabs)/generate" />;
   }
   

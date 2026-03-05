@@ -12,6 +12,7 @@ interface AlertProps {
   message: string;
   onDismiss?: () => void;
   className?: string;
+  testID?: string;
 }
 
 export function Alert({
@@ -20,6 +21,7 @@ export function Alert({
   message,
   onDismiss,
   className,
+  testID,
 }: AlertProps) {
   const config = {
     success: {
@@ -60,6 +62,7 @@ export function Alert({
 
   return (
     <View
+      testID={testID}
       className={`
         flex-row items-start p-4 rounded-xl border
         ${bg} ${border} ${className}

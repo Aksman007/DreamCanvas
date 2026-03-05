@@ -3,10 +3,10 @@ Generation Tasks - Celery tasks for image generation.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
-from celery import shared_task
 from sqlalchemy import select
 
 from app.celery_app import celery_app
@@ -14,32 +14,35 @@ from app.config import settings
 from app.db.sync_session import get_sync_session
 from app.models.generation import Generation, GenerationStatus
 from app.models.user import User
+from app.services.claude_service import ClaudeService
+from app.services.image_gen_service import ImageGenerationService
+from app.services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 
 
-def get_claude_service():
+def get_claude_service() -> ClaudeService:
     """Get Claude service (lazy import to avoid circular imports)."""
     from app.services.claude_service import get_claude_service as _get_claude_service
 
     return _get_claude_service()
 
 
-def get_image_gen_service():
+def get_image_gen_service() -> ImageGenerationService:
     """Get image generation service (lazy import)."""
     from app.services.image_gen_service import get_image_gen_service as _get_image_gen_service
 
     return _get_image_gen_service()
 
 
-def get_storage_service():
+def get_storage_service() -> StorageService:
     """Get storage service (lazy import)."""
     from app.services.storage_service import get_storage_service as _get_storage_service
 
     return _get_storage_service()
 
 
-@celery_app.task(
+@celery_app.task(  # type: ignore[untyped-decorator]
     bind=True,
     name="app.tasks.generation_tasks.process_generation_task",
     max_retries=3,
@@ -50,10 +53,10 @@ def get_storage_service():
     retry_jitter=True,
 )
 def process_generation_task(
-    self,
+    self: Any,
     generation_id: str,
     enhance_prompt: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """
     Process an image generation request in the background.
 
@@ -73,8 +76,10 @@ def process_generation_task(
 
     with get_sync_session() as session:
         # Get the generation
-        result = session.execute(select(Generation).where(Generation.id == UUID(generation_id)))
-        generation = result.scalar_one_or_none()
+        query_result = session.execute(
+            select(Generation).where(Generation.id == UUID(generation_id))
+        )
+        generation = query_result.scalar_one_or_none()
 
         if generation is None:
             logger.error(f"Generation {generation_id} not found")
@@ -87,7 +92,7 @@ def process_generation_task(
         try:
             # Mark as processing
             generation.status = GenerationStatus.PROCESSING
-            generation.started_at = datetime.now(timezone.utc)
+            generation.started_at = datetime.now(UTC)
             session.commit()
 
             # Notify via WebSocket (if available)
@@ -107,7 +112,7 @@ def process_generation_task(
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
 
-                    result = loop.run_until_complete(
+                    enhance_result = loop.run_until_complete(
                         claude.enhance_prompt(
                             prompt=generation.original_prompt,
                             style=generation.style,
@@ -116,13 +121,13 @@ def process_generation_task(
                     )
                     loop.close()
 
-                    final_prompt = result["enhanced_prompt"]
+                    final_prompt = enhance_result["enhanced_prompt"]
                     generation.enhanced_prompt = final_prompt
 
-                    if result.get("style_suggestions"):
+                    if enhance_result.get("style_suggestions"):
                         generation.generation_metadata = {
                             **generation.generation_metadata,
-                            "style_suggestions": result["style_suggestions"],
+                            "style_suggestions": enhance_result["style_suggestions"],
                         }
 
                     session.commit()
@@ -199,7 +204,7 @@ def process_generation_task(
             generation.status = GenerationStatus.COMPLETED
             generation.image_url = storage_result.url
             generation.thumbnail_url = storage_result.thumbnail_url
-            generation.completed_at = datetime.now(timezone.utc)
+            generation.completed_at = datetime.now(UTC)
 
             if storage_result.key:
                 generation.generation_metadata = {
@@ -214,7 +219,7 @@ def process_generation_task(
             user = user_result.scalar_one_or_none()
             if user:
                 user.generation_count += 1
-                user.last_generation_at = datetime.now(timezone.utc)
+                user.last_generation_at = datetime.now(UTC)
                 session.commit()
 
             logger.info(f"Completed generation {generation_id}")
@@ -238,7 +243,7 @@ def process_generation_task(
             generation.status = GenerationStatus.FAILED
             generation.error_message = str(e)
             generation.error_code = "PROCESSING_ERROR"
-            generation.completed_at = datetime.now(timezone.utc)
+            generation.completed_at = datetime.now(UTC)
             session.commit()
 
             _notify_status(generation_id, "failed", str(e))
@@ -254,10 +259,10 @@ def process_generation_task(
             }
 
 
-@celery_app.task(
+@celery_app.task(  # type: ignore[untyped-decorator]
     name="app.tasks.generation_tasks.cleanup_failed_generations",
 )
-def cleanup_failed_generations() -> dict:
+def cleanup_failed_generations() -> dict[str, Any]:
     """
     Periodic task to clean up old failed generations.
 
@@ -268,7 +273,7 @@ def cleanup_failed_generations() -> dict:
     logger.info("Running cleanup_failed_generations task")
 
     with get_sync_session() as session:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Find old failed generations (older than 24 hours)
         cutoff_failed = now - timedelta(hours=24)
@@ -346,7 +351,7 @@ def _notify_status(
     generation_id: str,
     status: str,
     message: str,
-    **extra_data,
+    **extra_data: Any,
 ) -> None:
     """
     Send status notification via Redis pub/sub for WebSocket delivery.
@@ -359,16 +364,17 @@ def _notify_status(
     """
     try:
         import json
+
         import redis
 
-        r = redis.from_url(settings.redis_url)
+        r = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
 
-        notification = {
+        notification: dict[str, Any] = {
             "type": "generation_update",
             "generation_id": generation_id,
             "status": status,
             "message": message,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             **extra_data,
         }
 

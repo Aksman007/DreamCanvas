@@ -1,9 +1,10 @@
 """DreamCanvas API - Main Application Entry Point"""
 
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Any
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -13,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
 from app.config import settings
-from app.core.exceptions import DreamCanvasException
+from app.core.exceptions import DreamCanvasError
 from app.core.middleware import (
     RateLimitMiddleware,
     RequestLoggingMiddleware,
@@ -52,7 +53,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info(f"📁 Local storage: {storage_path.absolute()}")
 
     # Initialize WebSocket manager
-    from app.api.v1.websocket import startup_websocket_manager, shutdown_websocket_manager
+    from app.api.v1.websocket import shutdown_websocket_manager, startup_websocket_manager
 
     await startup_websocket_manager()
 
@@ -102,9 +103,9 @@ if settings.storage_provider == "local":
 
 
 # ==================== Exception Handlers ====================
-@app.exception_handler(DreamCanvasException)
+@app.exception_handler(DreamCanvasError)
 async def dreamcanvas_exception_handler(
-    request: Request, exc: DreamCanvasException
+    request: Request, exc: DreamCanvasError
 ) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content=exc.to_dict())
 
@@ -150,7 +151,7 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 # ==================== Root Endpoints ====================
 @app.get("/", tags=["Root"])
-async def root():
+async def root() -> dict[str, Any]:
     """Root endpoint with API information."""
     return {
         "name": settings.app_name,
@@ -163,9 +164,8 @@ async def root():
 
 
 @app.get("/health", tags=["Health"])
-async def health_check():
+async def health_check() -> dict[str, Any]:
     """Health check endpoint."""
-    from app.db.session import check_db_connection
     from app.services.claude_service import get_claude_service
     from app.services.image_gen_service import get_image_gen_service
 
@@ -176,7 +176,7 @@ async def health_check():
     try:
         import redis.asyncio as redis_client
 
-        r = redis_client.from_url(settings.redis_url)
+        r = redis_client.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
         await r.ping()
         redis_healthy = True
         await r.close()

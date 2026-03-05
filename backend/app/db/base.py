@@ -4,13 +4,12 @@ Database Base Model - Provides base class and mixins for all SQLAlchemy models.
 
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import DateTime, MetaData, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
-
 
 # Naming convention for database constraints
 NAMING_CONVENTION = {
@@ -30,9 +29,9 @@ class Base(DeclarativeBase):
     metadata = metadata
 
     @declared_attr.directive
-    def __tablename__(cls) -> str:
+    def __tablename__(self) -> str:
         """Generate table name from class name (CamelCase -> snake_case + s)."""
-        name = cls.__name__
+        name = self.__name__
         s1 = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
         snake_case = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
         return f"{snake_case}s"
@@ -72,16 +71,16 @@ class TimestampMixin:
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         server_default=func.now(),
         nullable=False,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         server_default=func.now(),
-        onupdate=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
 
@@ -100,7 +99,7 @@ class SoftDeleteMixin:
         return self.deleted_at is not None
 
     def soft_delete(self) -> None:
-        self.deleted_at = datetime.now(timezone.utc)
+        self.deleted_at = datetime.now(UTC)
 
     def restore(self) -> None:
         self.deleted_at = None

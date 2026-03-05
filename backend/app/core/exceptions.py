@@ -7,13 +7,12 @@ These are caught by exception handlers in main.py and converted to proper HTTP r
 
 from typing import Any
 
-
 # ============================================================================
 # BASE EXCEPTION
 # ============================================================================
 
 
-class DreamCanvasException(Exception):
+class DreamCanvasError(Exception):
     """
     Base exception for all DreamCanvas errors.
 
@@ -53,7 +52,7 @@ class DreamCanvasException(Exception):
 # ============================================================================
 
 
-class AuthenticationError(DreamCanvasException):
+class AuthenticationError(DreamCanvasError):
     """Base class for authentication errors."""
 
     def __init__(
@@ -115,7 +114,7 @@ class MissingTokenError(AuthenticationError):
 # ============================================================================
 
 
-class AuthorizationError(DreamCanvasException):
+class AuthorizationError(DreamCanvasError):
     """Base class for authorization errors."""
 
     def __init__(
@@ -173,7 +172,7 @@ class AccountDeactivatedError(AuthorizationError):
 # ============================================================================
 
 
-class NotFoundError(DreamCanvasException):
+class NotFoundError(DreamCanvasError):
     """Raised when a requested resource is not found."""
 
     def __init__(
@@ -217,7 +216,7 @@ class ConversationNotFoundError(NotFoundError):
         super().__init__(resource_type="Conversation", resource_id=conversation_id)
 
 
-class AlreadyExistsError(DreamCanvasException):
+class AlreadyExistsError(DreamCanvasError):
     """Raised when trying to create a duplicate resource."""
 
     def __init__(
@@ -256,7 +255,7 @@ class EmailAlreadyExistsError(AlreadyExistsError):
 # ============================================================================
 
 
-class ValidationError(DreamCanvasException):
+class ValidationError(DreamCanvasError):
     """Raised when request validation fails."""
 
     def __init__(
@@ -272,7 +271,7 @@ class ValidationError(DreamCanvasException):
         )
 
 
-class BadRequestError(DreamCanvasException):
+class BadRequestError(DreamCanvasError):
     """Raised for malformed or invalid requests."""
 
     def __init__(
@@ -303,7 +302,7 @@ class InvalidInputError(BadRequestError):
 # ============================================================================
 
 
-class RateLimitExceededError(DreamCanvasException):
+class RateLimitExceededError(DreamCanvasError):
     """Raised when rate limit is exceeded."""
 
     def __init__(
@@ -344,7 +343,7 @@ class GenerationLimitExceededError(RateLimitExceededError):
 # ============================================================================
 
 
-class ExternalServiceError(DreamCanvasException):
+class ExternalServiceError(DreamCanvasError):
     """Base class for external service errors."""
 
     def __init__(
@@ -422,7 +421,7 @@ class StorageError(ExternalServiceError):
         )
 
 
-class DatabaseError(DreamCanvasException):
+class DatabaseError(DreamCanvasError):
     """Raised when database operations fail."""
 
     def __init__(

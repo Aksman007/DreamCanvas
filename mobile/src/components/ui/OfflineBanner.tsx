@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { View, Text, Animated } from 'react-native';
+import { View, Text } from 'react-native';
 import { WifiOff } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

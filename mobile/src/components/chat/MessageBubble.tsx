@@ -13,7 +13,7 @@ interface MessageBubbleProps {
   isLast?: boolean;
 }
 
-export function MessageBubble({ message, isLast = false }: MessageBubbleProps) {
+export function MessageBubble({ message, isLast: _isLast = false }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
   return (

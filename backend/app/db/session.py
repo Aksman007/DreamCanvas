@@ -5,14 +5,15 @@ Database Session Management - Provides async database engine and session factory
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy import text
 
 from app.config import settings
 
@@ -24,7 +25,7 @@ def create_engine() -> AsyncEngine:
     # SQLite doesn't support pool settings
     is_sqlite = "sqlite" in settings.database_url.lower()
 
-    engine_args = {
+    engine_args: dict[str, Any] = {
         "echo": settings.db_echo,
     }
 

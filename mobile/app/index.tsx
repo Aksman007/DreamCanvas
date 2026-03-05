@@ -2,7 +2,6 @@
  * Index - Entry redirect based on auth state
  */
 
-import { useEffect } from 'react';
 import { Redirect } from 'expo-router';
 import { useAuthStore } from '../src/stores/authStore';
 import { LoadingScreen } from '../src/components/ui';

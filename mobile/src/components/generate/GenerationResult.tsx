@@ -103,7 +103,6 @@ export function GenerationResult({
   };
 
   const handleCopyPrompt = async () => {
-    const prompt = generation.enhanced_prompt || generation.original_prompt;
     // Note: Clipboard API requires expo-clipboard
     // For now, just show a visual feedback
     setCopied(true);

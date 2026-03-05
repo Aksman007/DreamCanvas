@@ -12,9 +12,6 @@ Endpoints tested:
 import pytest
 from fastapi import status
 
-from app.core.security import verify_password
-
-
 # ==================== Registration Tests ====================
 
 
@@ -22,7 +19,7 @@ class TestRegister:
     """Test POST /api/v1/auth/register endpoint."""
 
     @pytest.mark.asyncio
-    async def test_register_success(self, async_client, user_data):
+    async def test_register_success(self, async_client, user_data) -> None:  # type: ignore[no-untyped-def]
         """Test successful user registration."""
         response = await async_client.post("/api/v1/auth/register", json=user_data)
 
@@ -49,7 +46,7 @@ class TestRegister:
         assert tokens["expires_in"] > 0
 
     @pytest.mark.asyncio
-    async def test_register_duplicate_email(self, async_client, test_user, user_data):
+    async def test_register_duplicate_email(self, async_client, test_user, user_data) -> None:  # type: ignore[no-untyped-def]
         """Test registration with duplicate email fails."""
         # Use existing user's email
         user_data["email"] = test_user.email
@@ -61,7 +58,7 @@ class TestRegister:
         assert "already registered" in data["detail"].lower()
 
     @pytest.mark.asyncio
-    async def test_register_invalid_email(self, async_client, user_data):
+    async def test_register_invalid_email(self, async_client, user_data) -> None:  # type: ignore[no-untyped-def]
         """Test registration with invalid email format."""
         user_data["email"] = "not-a-valid-email"
 
@@ -70,7 +67,7 @@ class TestRegister:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_register_weak_password(self, async_client, user_data):
+    async def test_register_weak_password(self, async_client, user_data) -> None:  # type: ignore[no-untyped-def]
         """Test registration with weak password."""
         user_data["password"] = "weak"  # Too short
 
@@ -79,7 +76,7 @@ class TestRegister:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_register_missing_email(self, async_client, user_data):
+    async def test_register_missing_email(self, async_client, user_data) -> None:  # type: ignore[no-untyped-def]
         """Test registration without email."""
         del user_data["email"]
 
@@ -88,7 +85,7 @@ class TestRegister:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_register_missing_password(self, async_client, user_data):
+    async def test_register_missing_password(self, async_client, user_data) -> None:  # type: ignore[no-untyped-def]
         """Test registration without password."""
         del user_data["password"]
 
@@ -97,7 +94,7 @@ class TestRegister:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_register_empty_display_name(self, async_client, user_data):
+    async def test_register_empty_display_name(self, async_client, user_data) -> None:  # type: ignore[no-untyped-def]
         """Test registration with empty display name."""
         user_data["display_name"] = ""
 
@@ -106,7 +103,7 @@ class TestRegister:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_register_email_case_insensitive(self, async_client, user_data):
+    async def test_register_email_case_insensitive(self, async_client, user_data) -> None:  # type: ignore[no-untyped-def]
         """Test that email registration is case-insensitive."""
         # Register with lowercase
         response1 = await async_client.post("/api/v1/auth/register", json=user_data)
@@ -126,7 +123,7 @@ class TestLogin:
     """Test POST /api/v1/auth/login endpoint."""
 
     @pytest.mark.asyncio
-    async def test_login_success(self, async_client, test_user):
+    async def test_login_success(self, async_client, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test successful login with valid credentials."""
         response = await async_client.post(
             "/api/v1/auth/login",
@@ -152,7 +149,7 @@ class TestLogin:
         assert tokens["token_type"] == "bearer"
 
     @pytest.mark.asyncio
-    async def test_login_invalid_email(self, async_client):
+    async def test_login_invalid_email(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test login with non-existent email."""
         response = await async_client.post(
             "/api/v1/auth/login",
@@ -164,7 +161,7 @@ class TestLogin:
         assert "invalid" in data["detail"].lower()
 
     @pytest.mark.asyncio
-    async def test_login_invalid_password(self, async_client, test_user):
+    async def test_login_invalid_password(self, async_client, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test login with wrong password."""
         response = await async_client.post(
             "/api/v1/auth/login",
@@ -176,7 +173,7 @@ class TestLogin:
         assert "invalid" in data["detail"].lower()
 
     @pytest.mark.asyncio
-    async def test_login_inactive_user(self, async_client, inactive_user):
+    async def test_login_inactive_user(self, async_client, inactive_user) -> None:  # type: ignore[no-untyped-def]
         """Test login with deactivated account."""
         response = await async_client.post(
             "/api/v1/auth/login",
@@ -188,21 +185,21 @@ class TestLogin:
         assert "deactivated" in data["detail"].lower()
 
     @pytest.mark.asyncio
-    async def test_login_missing_email(self, async_client):
+    async def test_login_missing_email(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test login without email."""
         response = await async_client.post("/api/v1/auth/login", json={"password": "password123"})
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_login_missing_password(self, async_client, test_user):
+    async def test_login_missing_password(self, async_client, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test login without password."""
         response = await async_client.post("/api/v1/auth/login", json={"email": test_user.email})
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_login_case_insensitive_email(self, async_client, test_user):
+    async def test_login_case_insensitive_email(self, async_client, test_user) -> None:  # type: ignore[no-untyped-def]
         """Test that login email is case-insensitive."""
         response = await async_client.post(
             "/api/v1/auth/login",
@@ -219,7 +216,7 @@ class TestRefreshToken:
     """Test POST /api/v1/auth/refresh endpoint."""
 
     @pytest.mark.asyncio
-    async def test_refresh_token_success(self, async_client, test_user, refresh_token):
+    async def test_refresh_token_success(self, async_client, test_user, refresh_token) -> None:  # type: ignore[no-untyped-def]
         """Test successful token refresh."""
         response = await async_client.post(
             "/api/v1/auth/refresh",
@@ -239,7 +236,7 @@ class TestRefreshToken:
         assert data["access_token"] != data["refresh_token"]
 
     @pytest.mark.asyncio
-    async def test_refresh_token_invalid(self, async_client):
+    async def test_refresh_token_invalid(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test refresh with invalid token."""
         response = await async_client.post(
             "/api/v1/auth/refresh",
@@ -249,7 +246,7 @@ class TestRefreshToken:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_refresh_token_using_access_token(self, async_client, auth_token):
+    async def test_refresh_token_using_access_token(self, async_client, auth_token) -> None:  # type: ignore[no-untyped-def]
         """Test that access token cannot be used as refresh token."""
         response = await async_client.post(
             "/api/v1/auth/refresh",
@@ -259,18 +256,18 @@ class TestRefreshToken:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_refresh_token_missing(self, async_client):
+    async def test_refresh_token_missing(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test refresh without token."""
         response = await async_client.post("/api/v1/auth/refresh", json={})
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_refresh_token_for_deleted_user(self, async_client, db_session):
+    async def test_refresh_token_for_deleted_user(self, async_client, db_session) -> None:  # type: ignore[no-untyped-def]
         """Test refresh token fails if user is deleted."""
         # Create and delete a user
+        from app.core.security import create_token_pair, hash_password
         from app.models.user import User
-        from app.core.security import hash_password, create_token_pair
 
         user = User(
             email="delete-me@example.com",
@@ -305,7 +302,7 @@ class TestGetCurrentUser:
     """Test GET /api/v1/auth/me endpoint."""
 
     @pytest.mark.asyncio
-    async def test_get_current_user_success(self, async_client, test_user, auth_headers):
+    async def test_get_current_user_success(self, async_client, test_user, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test getting current user profile."""
         response = await async_client.get("/api/v1/auth/me", headers=auth_headers)
 
@@ -325,14 +322,14 @@ class TestGetCurrentUser:
         assert "password" not in data
 
     @pytest.mark.asyncio
-    async def test_get_current_user_no_auth(self, async_client):
+    async def test_get_current_user_no_auth(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test getting current user without authentication."""
         response = await async_client.get("/api/v1/auth/me")
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_get_current_user_invalid_token(self, async_client):
+    async def test_get_current_user_invalid_token(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test getting current user with invalid token."""
         response = await async_client.get(
             "/api/v1/auth/me",
@@ -342,7 +339,7 @@ class TestGetCurrentUser:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_get_current_user_malformed_auth_header(self, async_client):
+    async def test_get_current_user_malformed_auth_header(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test with malformed authorization header."""
         # Missing 'Bearer' prefix
         response = await async_client.get(
@@ -360,7 +357,7 @@ class TestUpdateProfile:
     """Test PATCH /api/v1/auth/me endpoint."""
 
     @pytest.mark.asyncio
-    async def test_update_display_name(self, async_client, test_user, auth_headers):
+    async def test_update_display_name(self, async_client, test_user, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test updating display name."""
         response = await async_client.patch(
             "/api/v1/auth/me",
@@ -374,7 +371,7 @@ class TestUpdateProfile:
         assert data["email"] == test_user.email  # Unchanged
 
     @pytest.mark.asyncio
-    async def test_update_bio(self, async_client, auth_headers):
+    async def test_update_bio(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test updating bio."""
         response = await async_client.patch(
             "/api/v1/auth/me",
@@ -387,7 +384,7 @@ class TestUpdateProfile:
         assert data["bio"] == "This is my new bio"
 
     @pytest.mark.asyncio
-    async def test_update_avatar_url(self, async_client, auth_headers):
+    async def test_update_avatar_url(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test updating avatar URL."""
         response = await async_client.patch(
             "/api/v1/auth/me",
@@ -400,7 +397,7 @@ class TestUpdateProfile:
         assert data["avatar_url"] == "https://example.com/avatar.jpg"
 
     @pytest.mark.asyncio
-    async def test_update_preferences(self, async_client, auth_headers):
+    async def test_update_preferences(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test updating user preferences."""
         response = await async_client.patch(
             "/api/v1/auth/me",
@@ -414,10 +411,10 @@ class TestUpdateProfile:
         assert data["preferences"]["notifications"] is True
 
     @pytest.mark.asyncio
-    async def test_update_preferences_merge(self, async_client, auth_headers):
+    async def test_update_preferences_merge(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test that preferences are merged, not replaced."""
         # Set initial preferences
-        client.patch(
+        await async_client.patch(
             "/api/v1/auth/me",
             headers=auth_headers,
             json={"preferences": {"theme": "dark", "language": "en"}},
@@ -438,7 +435,7 @@ class TestUpdateProfile:
         assert data["preferences"]["notifications"] is True
 
     @pytest.mark.asyncio
-    async def test_update_multiple_fields(self, async_client, auth_headers):
+    async def test_update_multiple_fields(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test updating multiple fields at once."""
         response = await async_client.patch(
             "/api/v1/auth/me",
@@ -457,7 +454,7 @@ class TestUpdateProfile:
         assert data["avatar_url"] == "https://example.com/new-avatar.jpg"
 
     @pytest.mark.asyncio
-    async def test_update_profile_no_auth(self, async_client):
+    async def test_update_profile_no_auth(self, async_client) -> None:  # type: ignore[no-untyped-def]
         """Test updating profile without authentication."""
         response = await async_client.patch(
             "/api/v1/auth/me",
@@ -467,7 +464,7 @@ class TestUpdateProfile:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    async def test_update_profile_no_changes(self, async_client, test_user, auth_headers):
+    async def test_update_profile_no_changes(self, async_client, test_user, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test updating with no fields returns current profile."""
         response = await async_client.patch("/api/v1/auth/me", headers=auth_headers, json={})
 
@@ -476,7 +473,7 @@ class TestUpdateProfile:
         assert data["display_name"] == test_user.display_name
 
     @pytest.mark.asyncio
-    async def test_update_profile_invalid_display_name(self, async_client, auth_headers):
+    async def test_update_profile_invalid_display_name(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test updating with invalid display name."""
         # Display name too long
         response = await async_client.patch(
@@ -488,7 +485,7 @@ class TestUpdateProfile:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_update_profile_invalid_bio(self, async_client, auth_headers):
+    async def test_update_profile_invalid_bio(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test updating with invalid bio."""
         # Bio too long
         response = await async_client.patch(
@@ -500,7 +497,7 @@ class TestUpdateProfile:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.asyncio
-    async def test_cannot_update_email(self, async_client, auth_headers):
+    async def test_cannot_update_email(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test that email cannot be updated via this endpoint."""
         response = await async_client.patch(
             "/api/v1/auth/me",
@@ -514,7 +511,7 @@ class TestUpdateProfile:
         assert data["email"] != "newemail@example.com"
 
     @pytest.mark.asyncio
-    async def test_cannot_update_is_active(self, async_client, auth_headers):
+    async def test_cannot_update_is_active(self, async_client, auth_headers) -> None:  # type: ignore[no-untyped-def]
         """Test that is_active cannot be updated via this endpoint."""
         response = await async_client.patch(
             "/api/v1/auth/me",

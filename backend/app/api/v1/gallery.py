@@ -33,7 +33,7 @@ async def list_generations(
     db: DBSession,
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
-    status: GenerationStatus | None = Query(default=None, description="Filter by status"),
+    status: GenerationStatus | None = Query(default=None, description="Filter by status"),  # noqa: B008
 ) -> GenerationListResponse:
     """
     List user's image generations.

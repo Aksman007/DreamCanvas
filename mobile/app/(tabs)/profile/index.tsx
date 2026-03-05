@@ -22,7 +22,7 @@ import { Button } from '../../../src/components/ui';
 import { useAuthStore } from '../../../src/stores/authStore';
 
 export default function ProfileScreen() {
-  const { user, logout, isLoading } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
     Alert.alert(

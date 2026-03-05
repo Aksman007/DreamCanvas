@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { render, fireEvent } from '../utils/test-utils';
+import { render } from '../utils/test-utils';
 import { useForm } from 'react-hook-form';
 import { FormInput } from '../../components/ui/FormInput';
 
@@ -14,7 +14,7 @@ const FormInputWrapper = ({
   ...props
 }: {
   name: string;
-  error?: { message: string };
+  error?: { type: string; message: string };
   [key: string]: any;
 }) => {
   const { control } = useForm({
@@ -45,7 +45,7 @@ describe('FormInput', () => {
     const { getByText } = render(
       <FormInputWrapper
         name="email"
-        error={{ message: 'Email is required' }}
+        error={{ type: 'required', message: 'Email is required' }}
       />
     );
     
@@ -65,7 +65,7 @@ describe('FormInput', () => {
       <FormInputWrapper
         name="password"
         hint="At least 8 characters"
-        error={{ message: 'Password too short' }}
+        error={{ type: 'minLength', message: 'Password too short' }}
       />
     );
     

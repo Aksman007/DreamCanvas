@@ -4,10 +4,8 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import {
-  View,
   FlatList,
   TouchableOpacity,
-  Text,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

@@ -3,12 +3,11 @@ User Model - Defines the User database model.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, Integer, JSON, String, Text
+from sqlalchemy import JSON, Boolean, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.types import TypeDecorator
 
 from app.db.base import BaseModel
 
@@ -65,7 +64,7 @@ class User(BaseModel):
     )
 
     # Preferences (JSON) - Uses JSON for SQLite compatibility, JSONB for Postgres
-    preferences: Mapped[dict] = mapped_column(
+    preferences: Mapped[dict[str, Any]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"),
         default=dict,
         server_default="{}",
@@ -101,7 +100,7 @@ class User(BaseModel):
             return self.display_name
         return self.email.split("@")[0]
 
-    def update_preferences(self, new_prefs: dict) -> None:
+    def update_preferences(self, new_prefs: dict[str, Any]) -> None:
         """Merge new preferences with existing ones."""
         self.preferences = {**self.preferences, **new_prefs}
 

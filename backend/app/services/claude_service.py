@@ -5,7 +5,7 @@ Claude Service - Anthropic Claude API integration for prompt enhancement.
 import logging
 from typing import Any
 
-from anthropic import Anthropic, APIError, APIConnectionError, RateLimitError
+from anthropic import Anthropic, APIConnectionError, APIError, RateLimitError
 
 from app.config import settings
 
@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 class ClaudeService:
     """Service for interacting with Claude API."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        self.client: Anthropic | None
         if not settings.has_claude:
             logger.warning("Claude API key not configured")
             self.client = None
@@ -48,7 +49,7 @@ class ClaudeService:
         Returns:
             Dictionary with enhanced_prompt and style_suggestions
         """
-        if not self.is_available:
+        if not self.is_available or self.client is None:
             logger.warning("Claude not available, returning original prompt")
             return {
                 "enhanced_prompt": prompt,
@@ -90,7 +91,8 @@ Only respond with the JSON, no other text."""
             )
 
             # Parse the response
-            content = response.content[0].text
+            content_block = response.content[0]
+            content: str = content_block.text  # type: ignore[union-attr]
 
             # Try to parse as JSON
             import json
@@ -111,20 +113,20 @@ Only respond with the JSON, no other text."""
 
         except RateLimitError as e:
             logger.error(f"Claude rate limit exceeded: {e}")
-            raise ValueError("Rate limit exceeded. Please try again later.")
+            raise ValueError("Rate limit exceeded. Please try again later.") from e
 
         except APIConnectionError as e:
             logger.error(f"Claude connection error: {e}")
-            raise ValueError("Failed to connect to AI service. Please try again.")
+            raise ValueError("Failed to connect to AI service. Please try again.") from e
 
         except APIError as e:
             logger.error(f"Claude API error: {e}")
-            raise ValueError(f"AI service error: {str(e)}")
+            raise ValueError(f"AI service error: {str(e)}") from e
 
     async def chat(
         self,
         message: str,
-        conversation_history: list[dict] | None = None,
+        conversation_history: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """
         Chat with Claude for prompt assistance.
@@ -136,7 +138,7 @@ Only respond with the JSON, no other text."""
         Returns:
             Dictionary with message and optional suggested_prompt
         """
-        if not self.is_available:
+        if not self.is_available or self.client is None:
             return {
                 "message": "AI assistant is not configured. Please provide your prompt directly.",
                 "suggested_prompt": None,
@@ -155,7 +157,7 @@ When you have enough information, include a "SUGGESTED PROMPT:" section with a c
 Be friendly, creative, and helpful."""
 
         # Build messages
-        messages = []
+        messages: list[dict[str, Any]] = []
         if conversation_history:
             messages.extend(conversation_history)
         messages.append({"role": "user", "content": message})
@@ -166,13 +168,14 @@ Be friendly, creative, and helpful."""
                 max_tokens=self.max_tokens,
                 temperature=0.8,  # Slightly more creative for chat
                 system=system_prompt,
-                messages=messages,
+                messages=messages,  # type: ignore[arg-type]
             )
 
-            content = response.content[0].text
+            content_block = response.content[0]
+            content: str = content_block.text  # type: ignore[union-attr]
 
             # Extract suggested prompt if present
-            suggested_prompt = None
+            suggested_prompt: str | None = None
             if "SUGGESTED PROMPT:" in content:
                 parts = content.split("SUGGESTED PROMPT:")
                 suggested_prompt = parts[1].strip().split("\n")[0].strip()

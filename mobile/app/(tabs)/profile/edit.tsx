@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,7 +20,7 @@ export default function EditProfileScreen() {
   const navigation = useNavigation();
   const { user, updateUser, isLoading, error, clearError } = useAuthStore();
   const [avatarUri, setAvatarUri] = useState<string | null>(user?.avatar_url || null);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingAvatar] = useState(false);
 
   const {
     control,

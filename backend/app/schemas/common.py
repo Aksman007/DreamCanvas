@@ -1,10 +1,8 @@
 """Common Schemas - Shared Pydantic schemas used across the application."""
 
-from datetime import datetime
-from typing import Generic, TypeVar
-from uuid import UUID
+from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar("T")
 
@@ -19,7 +17,7 @@ class BaseSchema(BaseModel):
     )
 
 
-class PaginatedResponse(BaseSchema, Generic[T]):
+class PaginatedResponse(BaseSchema, Generic[T]):  # noqa: UP046
     """Generic paginated response."""
 
     items: list[T]
@@ -48,7 +46,7 @@ class ErrorResponse(BaseSchema):
 
     error: str
     message: str
-    details: dict | None = None
+    details: dict[str, Any] | None = None
 
 
 class HealthResponse(BaseSchema):

@@ -17,6 +17,7 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   isLoading?: boolean;
   placeholder?: string;
+  testID?: string;
 }
 
 export function ChatInput({

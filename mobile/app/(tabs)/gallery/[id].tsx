@@ -33,7 +33,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function GalleryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: generation, isLoading, isError, refetch } = useGeneration(id);
+  const { data: generation, isLoading, isError } = useGeneration(id);
   const deleteGeneration = useDeleteGeneration();
 
   const handleDelete = useCallback(() => {

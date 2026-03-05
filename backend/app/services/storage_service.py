@@ -2,13 +2,14 @@
 Storage Service - File storage for generated images (S3/R2/Local).
 """
 
+import contextlib
 import io
 import logging
-import os
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import boto3
 from botocore.exceptions import ClientError
@@ -29,7 +30,7 @@ class StorageResult:
         thumbnail_url: str | None = None,
         key: str | None = None,
         error_message: str | None = None,
-    ):
+    ) -> None:
         self.success = success
         self.url = url
         self.thumbnail_url = thumbnail_url
@@ -65,7 +66,7 @@ class BaseStorageProvider(ABC):
 class LocalStorageProvider(BaseStorageProvider):
     """Local filesystem storage provider (for development)."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.storage_path = Path(settings.local_storage_path)
         self.base_url = settings.local_storage_url
 
@@ -79,7 +80,9 @@ class LocalStorageProvider(BaseStorageProvider):
         unique_id = uuid.uuid4().hex[:12]
         return f"{timestamp}_{unique_id}.{extension}"
 
-    def _create_thumbnail(self, image_data: bytes, max_size: tuple = (256, 256)) -> bytes:
+    def _create_thumbnail(
+        self, image_data: bytes, max_size: tuple[int, int] = (256, 256)
+    ) -> bytes:
         """Create a thumbnail from image data."""
         image = Image.open(io.BytesIO(image_data))
         image.thumbnail(max_size, Image.Resampling.LANCZOS)
@@ -105,7 +108,7 @@ class LocalStorageProvider(BaseStorageProvider):
                 f.write(image_data)
 
             image_url = f"{self.base_url}/images/{filename}"
-            thumbnail_url = None
+            thumbnail_url: str | None = None
 
             # Create and save thumbnail
             if create_thumbnail:
@@ -166,13 +169,13 @@ class LocalStorageProvider(BaseStorageProvider):
 class S3StorageProvider(BaseStorageProvider):
     """AWS S3 / Cloudflare R2 storage provider."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.bucket_name = settings.s3_bucket_name
         self.region = settings.s3_region
         self.public_url = settings.s3_public_url
 
         # Create S3 client
-        client_kwargs = {
+        client_kwargs: dict[str, Any] = {
             "aws_access_key_id": settings.s3_access_key,
             "aws_secret_access_key": settings.s3_secret_key,
             "region_name": self.region,
@@ -182,7 +185,7 @@ class S3StorageProvider(BaseStorageProvider):
         if settings.s3_endpoint_url:
             client_kwargs["endpoint_url"] = settings.s3_endpoint_url
 
-        self.client = boto3.client("s3", **client_kwargs)
+        self.client: Any = boto3.client("s3", **client_kwargs)
 
     def _generate_key(self, prefix: str, extension: str = "png") -> str:
         """Generate a unique S3 key."""
@@ -190,7 +193,9 @@ class S3StorageProvider(BaseStorageProvider):
         unique_id = uuid.uuid4().hex[:12]
         return f"{prefix}/{timestamp}/{unique_id}.{extension}"
 
-    def _create_thumbnail(self, image_data: bytes, max_size: tuple = (256, 256)) -> bytes:
+    def _create_thumbnail(
+        self, image_data: bytes, max_size: tuple[int, int] = (256, 256)
+    ) -> bytes:
         """Create a thumbnail from image data."""
         image = Image.open(io.BytesIO(image_data))
         image.thumbnail(max_size, Image.Resampling.LANCZOS)
@@ -226,7 +231,7 @@ class S3StorageProvider(BaseStorageProvider):
             )
 
             image_url = self._get_public_url(image_key)
-            thumbnail_url = None
+            thumbnail_url: str | None = None
 
             # Create and upload thumbnail
             if create_thumbnail:
@@ -267,10 +272,8 @@ class S3StorageProvider(BaseStorageProvider):
 
             # Delete thumbnail
             thumbnail_key = key.replace("images/", "thumbnails/")
-            try:
+            with contextlib.suppress(Exception):
                 self.client.delete_object(Bucket=self.bucket_name, Key=thumbnail_key)
-            except:
-                pass  # Thumbnail might not exist
 
             return True
         except Exception as e:
@@ -295,7 +298,8 @@ class S3StorageProvider(BaseStorageProvider):
 class StorageService:
     """Main storage service that coordinates providers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        self.provider: BaseStorageProvider
         if settings.storage_provider == "local" or not settings.has_s3_storage:
             logger.info("Using local storage provider")
             self.provider = LocalStorageProvider()

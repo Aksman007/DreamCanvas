@@ -5,11 +5,10 @@ WebSocket Manager - Real-time updates for generation progress.
 import asyncio
 import json
 import logging
-from typing import Dict, Set
-from uuid import UUID
+from typing import Any
 
 import redis.asyncio as redis
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.config import settings
 from app.core.security import decode_token
@@ -22,32 +21,32 @@ router = APIRouter()
 class ConnectionManager:
     """Manages WebSocket connections and Redis pub/sub."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # user_id -> set of WebSocket connections
-        self.active_connections: Dict[str, Set[WebSocket]] = {}
+        self.active_connections: dict[str, set[WebSocket]] = {}
         # generation_id -> set of WebSocket connections
-        self.generation_subscriptions: Dict[str, Set[WebSocket]] = {}
+        self.generation_subscriptions: dict[str, set[WebSocket]] = {}
         self.redis_client: redis.Redis | None = None
-        self._pubsub_task: asyncio.Task | None = None
+        self._pubsub_task: asyncio.Task[None] | None = None
 
-    async def startup(self):
+    async def startup(self) -> None:
         """Initialize Redis connection and start listening."""
         try:
-            self.redis_client = redis.from_url(settings.redis_url)
+            self.redis_client = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
             await self.redis_client.ping()
             logger.info("WebSocket manager connected to Redis")
         except Exception as e:
             logger.error(f"Failed to connect to Redis: {e}")
             self.redis_client = None
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """Clean up connections."""
         if self._pubsub_task:
             self._pubsub_task.cancel()
         if self.redis_client:
             await self.redis_client.close()
 
-    async def connect(self, websocket: WebSocket, user_id: str):
+    async def connect(self, websocket: WebSocket, user_id: str) -> bool:
         """Accept a new WebSocket connection."""
         await websocket.accept()
 
@@ -63,7 +62,7 @@ class ConnectionManager:
         logger.info(f"WebSocket connected: user={user_id}")
         return True
 
-    def disconnect(self, websocket: WebSocket, user_id: str):
+    def disconnect(self, websocket: WebSocket, user_id: str) -> None:
         """Remove a WebSocket connection."""
         if user_id in self.active_connections:
             self.active_connections[user_id].discard(websocket)
@@ -78,7 +77,7 @@ class ConnectionManager:
 
         logger.info(f"WebSocket disconnected: user={user_id}")
 
-    async def subscribe_to_generation(self, websocket: WebSocket, generation_id: str):
+    async def subscribe_to_generation(self, websocket: WebSocket, generation_id: str) -> None:
         """Subscribe a connection to generation updates."""
         if generation_id not in self.generation_subscriptions:
             self.generation_subscriptions[generation_id] = set()
@@ -89,7 +88,7 @@ class ConnectionManager:
         self.generation_subscriptions[generation_id].add(websocket)
         logger.debug(f"WebSocket subscribed to generation {generation_id}")
 
-    async def _listen_to_generation(self, generation_id: str):
+    async def _listen_to_generation(self, generation_id: str) -> None:
         """Listen to Redis pub/sub for generation updates."""
         if not self.redis_client:
             return
@@ -113,12 +112,14 @@ class ConnectionManager:
         except Exception as e:
             logger.error(f"Error listening to generation {generation_id}: {e}")
 
-    async def _broadcast_to_generation(self, generation_id: str, data: dict):
+    async def _broadcast_to_generation(
+        self, generation_id: str, data: dict[str, Any]
+    ) -> None:
         """Broadcast message to all connections subscribed to a generation."""
         if generation_id not in self.generation_subscriptions:
             return
 
-        disconnected = set()
+        disconnected: set[WebSocket] = set()
 
         for websocket in self.generation_subscriptions[generation_id]:
             try:
@@ -130,12 +131,12 @@ class ConnectionManager:
         for ws in disconnected:
             self.generation_subscriptions[generation_id].discard(ws)
 
-    async def send_personal_message(self, user_id: str, message: dict):
+    async def send_personal_message(self, user_id: str, message: dict[str, Any]) -> None:
         """Send a message to all connections of a specific user."""
         if user_id not in self.active_connections:
             return
 
-        disconnected = set()
+        disconnected: set[WebSocket] = set()
 
         for websocket in self.active_connections[user_id]:
             try:
@@ -156,7 +157,7 @@ manager = ConnectionManager()
 async def websocket_generations(
     websocket: WebSocket,
     token: str = Query(..., description="JWT access token"),
-):
+) -> None:
     """
     WebSocket endpoint for real-time generation updates.
 
@@ -198,7 +199,7 @@ async def websocket_generations(
         # Handle incoming messages
         while True:
             try:
-                data = await asyncio.wait_for(
+                data: dict[str, Any] = await asyncio.wait_for(
                     websocket.receive_json(),
                     timeout=settings.ws_heartbeat_interval,
                 )
@@ -238,7 +239,7 @@ async def websocket_generations(
                         }
                     )
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Send heartbeat
                 try:
                     await websocket.send_json({"type": "heartbeat"})
@@ -253,11 +254,11 @@ async def websocket_generations(
         manager.disconnect(websocket, user_id)
 
 
-async def startup_websocket_manager():
+async def startup_websocket_manager() -> None:
     """Called on app startup."""
     await manager.startup()
 
 
-async def shutdown_websocket_manager():
+async def shutdown_websocket_manager() -> None:
     """Called on app shutdown."""
     await manager.shutdown()

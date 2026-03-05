@@ -5,6 +5,7 @@ This module configures Celery for background task processing.
 """
 
 import logging
+
 from celery import Celery
 
 from app.config import settings

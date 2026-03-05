@@ -3,15 +3,21 @@ Pytest configuration and shared fixtures for DreamCanvas backend tests.
 """
 
 import asyncio
-from typing import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from faker import Faker
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-from sqlalchemy import create_engine, event
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -57,18 +63,17 @@ def test_settings() -> Settings:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def override_settings(test_settings: Settings) -> Generator:
+def override_settings(test_settings: Settings) -> Generator[None, None, None]:
     """Override app settings for all tests."""
-    with patch("app.config.get_settings", return_value=test_settings):
-        with patch("app.config.settings", test_settings):
-            yield
+    with patch("app.config.get_settings", return_value=test_settings), patch("app.config.settings", test_settings):
+        yield
 
 
 # ==================== Database Fixtures ====================
 
 
 @pytest.fixture(scope="session")
-def sync_engine(test_settings: Settings):
+def sync_engine(test_settings: Settings) -> Generator[Any, None, None]:
     """Create synchronous SQLite engine for tests."""
     engine = create_engine(
         "sqlite:///:memory:",
@@ -81,7 +86,7 @@ def sync_engine(test_settings: Settings):
 
 
 @pytest.fixture(scope="session")
-def async_engine(test_settings: Settings):
+def async_engine(test_settings: Settings) -> AsyncEngine:
     """Create async SQLite engine for tests."""
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
@@ -92,7 +97,7 @@ def async_engine(test_settings: Settings):
 
 
 @pytest.fixture(scope="function")
-async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
+async def db_session(async_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
     """
     Create a test database session.
 
@@ -124,10 +129,10 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture(scope="function")
-def sync_db_session(sync_engine) -> Generator[Session, None, None]:
+def sync_db_session(sync_engine: Any) -> Generator[Session, None, None]:
     """Create a synchronous test database session."""
-    SessionLocal = sessionmaker(bind=sync_engine)
-    session = SessionLocal()
+    session_local = sessionmaker(bind=sync_engine)
+    session = session_local()
 
     try:
         yield session
@@ -137,7 +142,7 @@ def sync_db_session(sync_engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def setup_test_database():
+async def setup_test_database() -> AsyncGenerator[None, None]:
     """Create tables in the app's database engine for tests."""
     from app.db.session import engine
 
@@ -153,9 +158,9 @@ async def setup_test_database():
 
 
 @pytest.fixture(scope="function", autouse=True)
-async def override_get_db(db_session: AsyncSession):
+async def override_get_db(db_session: AsyncSession) -> AsyncGenerator[None, None]:
     """Override the get_db dependency for tests."""
-    async def _get_test_db():
+    async def _get_test_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield db_session
         finally:
@@ -172,7 +177,7 @@ async def override_get_db(db_session: AsyncSession):
 
 
 @pytest.fixture(scope="function")
-def client(override_get_db) -> TestClient:
+def client(override_get_db: None) -> TestClient:
     """
     Create a test client for sync tests.
 
@@ -182,7 +187,7 @@ def client(override_get_db) -> TestClient:
 
 
 @pytest.fixture(scope="function")
-async def async_client(override_get_db) -> AsyncGenerator[AsyncClient, None]:
+async def async_client(override_get_db: None) -> AsyncGenerator[AsyncClient, None]:
     """
     Create an async test client.
 
@@ -199,7 +204,7 @@ async def async_client(override_get_db) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture
-def user_data() -> dict:
+def user_data() -> dict[str, str]:
     """Generate random user registration data."""
     return {
         "email": fake.email(),
@@ -209,7 +214,7 @@ def user_data() -> dict:
 
 
 @pytest.fixture
-async def test_user(db_session: AsyncSession, override_get_db) -> User:
+async def test_user(db_session: AsyncSession, override_get_db: None) -> User:
     """Create a test user in the database."""
     user = User(
         email="test@example.com",
@@ -225,7 +230,7 @@ async def test_user(db_session: AsyncSession, override_get_db) -> User:
 
 
 @pytest.fixture
-async def test_user_2(db_session: AsyncSession, override_get_db) -> User:
+async def test_user_2(db_session: AsyncSession, override_get_db: None) -> User:
     """Create a second test user for multi-user tests."""
     user = User(
         email="test2@example.com",
@@ -241,7 +246,7 @@ async def test_user_2(db_session: AsyncSession, override_get_db) -> User:
 
 
 @pytest.fixture
-async def inactive_user(db_session: AsyncSession, override_get_db) -> User:
+async def inactive_user(db_session: AsyncSession, override_get_db: None) -> User:
     """Create an inactive test user."""
     user = User(
         email="inactive@example.com",
@@ -274,13 +279,13 @@ def refresh_token(test_user: User) -> str:
 
 
 @pytest.fixture
-def auth_headers(auth_token: str) -> dict:
+def auth_headers(auth_token: str) -> dict[str, str]:
     """Generate authentication headers with Bearer token."""
     return {"Authorization": f"Bearer {auth_token}"}
 
 
 @pytest.fixture
-def auth_headers_user_2(test_user_2: User) -> dict:
+def auth_headers_user_2(test_user_2: User) -> dict[str, str]:
     """Generate authentication headers for second test user."""
     tokens = create_token_pair(subject=str(test_user_2.id))
     return {"Authorization": f"Bearer {tokens.access_token}"}
@@ -290,7 +295,7 @@ def auth_headers_user_2(test_user_2: User) -> dict:
 
 
 @pytest.fixture
-def mock_redis():
+def mock_redis() -> Generator[AsyncMock, None, None]:
     """Mock Redis client."""
     with patch("redis.asyncio.from_url") as mock:
         redis_mock = AsyncMock()
@@ -304,7 +309,7 @@ def mock_redis():
 
 
 @pytest.fixture
-def mock_celery():
+def mock_celery() -> Generator[MagicMock, None, None]:
     """Mock Celery task execution."""
     with patch("app.tasks.generation_tasks.process_generation_task.delay") as mock:
         task_mock = MagicMock()
@@ -314,7 +319,7 @@ def mock_celery():
 
 
 @pytest.fixture
-def mock_claude_api():
+def mock_claude_api() -> Generator[MagicMock, None, None]:
     """Mock Anthropic Claude API."""
     with patch("anthropic.Anthropic") as mock:
         client_mock = MagicMock()
@@ -333,7 +338,7 @@ def mock_claude_api():
 
 
 @pytest.fixture
-def mock_dalle_api():
+def mock_dalle_api() -> Generator[MagicMock, None, None]:
     """Mock OpenAI DALL-E API."""
     with patch("openai.OpenAI") as mock:
         client_mock = MagicMock()
@@ -352,7 +357,7 @@ def mock_dalle_api():
 
 
 @pytest.fixture
-def mock_stability_api():
+def mock_stability_api() -> Generator[AsyncMock, None, None]:
     """Mock Stability AI API."""
     with patch("httpx.AsyncClient.post") as mock:
         response_mock = AsyncMock()
@@ -370,13 +375,13 @@ def mock_stability_api():
 
 
 @pytest.fixture
-def mock_storage():
+def mock_storage() -> Generator[MagicMock, None, None]:
     """Mock storage service (S3/local)."""
     with patch("app.services.storage_service.StorageService") as mock:
         storage_mock = MagicMock()
 
         # Mock upload_image
-        async def mock_upload_image(*args, **kwargs):
+        async def mock_upload_image(*args: Any, **kwargs: Any) -> Any:
             from app.services.storage_service import StorageResult
             return StorageResult(
                 success=True,
@@ -394,7 +399,7 @@ def mock_storage():
 
 
 @pytest.fixture
-def mock_httpx():
+def mock_httpx() -> Generator[AsyncMock, None, None]:
     """Mock httpx for external HTTP requests."""
     with patch("httpx.AsyncClient.get") as mock:
         response_mock = AsyncMock()
@@ -408,7 +413,7 @@ def mock_httpx():
 
 
 @pytest.fixture
-def generation_data() -> dict:
+def generation_data() -> dict[str, Any]:
     """Generate random image generation request data."""
     return {
         "prompt": fake.text(max_nb_chars=200),
@@ -433,7 +438,7 @@ def faker() -> Faker:
 
 
 @pytest.fixture(scope="session")
-def event_loop():
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """Create an event loop for the test session."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop

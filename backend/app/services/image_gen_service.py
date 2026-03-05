@@ -27,15 +27,15 @@ class ImageGenerationResult:
         revised_prompt: str | None = None,
         error_message: str | None = None,
         error_code: str | None = None,
-        metadata: dict | None = None,
-    ):
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
         self.success = success
         self.image_url = image_url
         self.image_data = image_data
         self.revised_prompt = revised_prompt
         self.error_message = error_message
         self.error_code = error_code
-        self.metadata = metadata or {}
+        self.metadata: dict[str, Any] = metadata or {}
 
 
 class BaseImageProvider(ABC):
@@ -48,7 +48,7 @@ class BaseImageProvider(ABC):
         size: str = "1024x1024",
         quality: str = "standard",
         style: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> ImageGenerationResult:
         """Generate an image from a prompt."""
         pass
@@ -63,7 +63,8 @@ class BaseImageProvider(ABC):
 class DalleProvider(BaseImageProvider):
     """DALL-E image generation provider."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        self.client: OpenAI | None
         if settings.has_dalle:
             self.client = OpenAI(api_key=settings.openai_api_key)
         else:
@@ -84,10 +85,10 @@ class DalleProvider(BaseImageProvider):
         size: str = "1024x1024",
         quality: str = "standard",
         style: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> ImageGenerationResult:
         """Generate an image using DALL-E."""
-        if not self.is_available:
+        if not self.is_available or self.client is None:
             return ImageGenerationResult(
                 success=False,
                 error_message="DALL-E is not configured",
@@ -98,7 +99,7 @@ class DalleProvider(BaseImageProvider):
         dalle_style = style if style in ["vivid", "natural"] else self.default_style
 
         try:
-            response = self.client.images.generate(
+            response = self.client.images.generate(  # type: ignore[call-overload]
                 model=self.model,
                 prompt=prompt,
                 size=size,
@@ -160,7 +161,7 @@ class StabilityProvider(BaseImageProvider):
 
     API_URL = "https://api.stability.ai/v1/generation"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_key = settings.stability_api_key
         self.model = settings.stability_model
 
@@ -174,7 +175,7 @@ class StabilityProvider(BaseImageProvider):
         size: str = "1024x1024",
         quality: str = "standard",
         style: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> ImageGenerationResult:
         """Generate an image using Stability AI."""
         if not self.is_available:
@@ -215,11 +216,11 @@ class StabilityProvider(BaseImageProvider):
                     # Stability returns base64 encoded images
                     import base64
 
-                    image_data = base64.b64decode(data["artifacts"][0]["base64"])
+                    image_bytes = base64.b64decode(data["artifacts"][0]["base64"])
 
                     return ImageGenerationResult(
                         success=True,
-                        image_data=image_data,
+                        image_data=image_bytes,
                         metadata={
                             "model": self.model,
                             "size": size,
@@ -235,7 +236,9 @@ class StabilityProvider(BaseImageProvider):
                     )
 
                 else:
-                    error_data = response.json() if response.content else {}
+                    error_data: dict[str, Any] = (
+                        response.json() if response.content else {}
+                    )
                     error_msg = error_data.get("message", "Unknown error")
                     return ImageGenerationResult(
                         success=False,
@@ -262,7 +265,7 @@ class StabilityProvider(BaseImageProvider):
 class ImageGenerationService:
     """Main image generation service that coordinates providers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.dalle = DalleProvider()
         self.stability = StabilityProvider()
         self.default_provider = settings.default_image_provider
@@ -285,7 +288,7 @@ class ImageGenerationService:
         size: str = "1024x1024",
         quality: str = "standard",
         style: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> ImageGenerationResult:
         """
         Generate an image using the specified or default provider.

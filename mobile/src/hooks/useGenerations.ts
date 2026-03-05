@@ -4,7 +4,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { generateApi } from '../api';
-import type { Generation, GenerationListResponse } from '../types';
 
 // Query keys
 export const generationKeys = {

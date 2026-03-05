@@ -13,7 +13,6 @@ import logging
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.config import settings
 from app.core.dependencies import CurrentUser, DBSession
 from app.core.security import (
     create_token_pair,
@@ -29,7 +28,6 @@ from app.schemas.auth import (
     UserProfileResponse,
     UserResponseForAuth,
 )
-from app.schemas.common import SuccessResponse
 from app.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
@@ -91,7 +89,7 @@ async def register(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
     # Generate tokens
     tokens = create_token_pair(subject=str(user.id))
@@ -306,8 +304,6 @@ async def update_current_user_profile(
 
     **Requires Authentication:** Include access token in Authorization header.
     """
-    user_service = UserService(db)
-
     # Get update data (only fields that were provided)
     update_data = request.model_dump(exclude_unset=True)
 

@@ -2,6 +2,8 @@
 API v1 Router - Aggregates all v1 API routes.
 """
 
+from typing import Any
+
 from fastapi import APIRouter
 
 from app.api.v1 import auth, chat, gallery, generation, websocket
@@ -53,7 +55,7 @@ api_router.include_router(
     summary="API v1 Root",
     tags=["API Info"],
 )
-async def api_v1_root():
+async def api_v1_root() -> dict[str, Any]:
     """API v1 root endpoint - lists available endpoints."""
     return {
         "message": "DreamCanvas API v1",
@@ -94,7 +96,7 @@ async def api_v1_root():
     summary="Generate test token",
     tags=["Testing"],
 )
-async def generate_test_token(user_id: str = "test-user-123"):
+async def generate_test_token(user_id: str = "test-user-123") -> dict[str, Any]:
     """Generate a test JWT token pair. FOR DEVELOPMENT ONLY."""
     tokens = create_token_pair(subject=user_id)
     return {
@@ -109,7 +111,7 @@ async def generate_test_token(user_id: str = "test-user-123"):
     summary="Test protected endpoint",
     tags=["Testing"],
 )
-async def test_protected_endpoint(current_user: CurrentUser):
+async def test_protected_endpoint(current_user: CurrentUser) -> dict[str, Any]:
     """Test endpoint that requires authentication."""
     return {
         "message": "You are authenticated!",
@@ -123,7 +125,7 @@ async def test_protected_endpoint(current_user: CurrentUser):
     summary="Test optional auth endpoint",
     tags=["Testing"],
 )
-async def test_optional_auth(user: OptionalUser):
+async def test_optional_auth(user: OptionalUser) -> dict[str, Any]:
     """Test endpoint that works with or without authentication."""
     if user:
         return {"authenticated": True, "user_id": str(user.id), "email": user.email}

@@ -131,7 +131,7 @@ export function GenerationProgress({ status, error }: GenerationProgressProps) {
 
       {/* Step Indicators */}
       <View className="px-4">
-        {STEPS.filter((s) => s.status !== 'pending').map((step, index) => {
+        {STEPS.filter((s) => s.status !== 'pending').map((step) => {
           const Icon = step.icon;
           const stepIndex = STEPS.findIndex((s) => s.status === step.status);
           const isComplete = currentIndex > stepIndex || status === 'completed';
